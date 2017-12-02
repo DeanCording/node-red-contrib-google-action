@@ -39,7 +39,7 @@ module.exports = function(RED) {
         // start listening for commands
         agent.listen();
     }
-    RED.nodes.registerType("googleAction in",GoogleActionIn);
+    RED.nodes.registerType("google-action in",GoogleActionIn);
 
 
     function GoogleActionOut(n) {
@@ -55,5 +55,5 @@ module.exports = function(RED) {
             }
         });
     }
-    RED.nodes.registerType("googleAction response",GoogleActionOut);
+    RED.nodes.registerType("google-action response",GoogleActionOut);
 }
