@@ -19,7 +19,7 @@ module.exports = function(RED) {
         });
 
 
-        this.agent.intent(ActionServer.intent.action.MAIN, (assistant) => {
+        this.agent.intent(_googleActionServer.intent.action.MAIN, (assistant) => {
 
             // reads the user's request
             var msg = {topic:node.topic, intent:'MAIN', payload:assistant.getRawInput(), _assistant:assistant };
@@ -28,7 +28,7 @@ module.exports = function(RED) {
         });
 
 
-        this.agent.intent(ActionServer.intent.action.TEXT, (assistant) => {
+        this.agent.intent(_googleActionServer.intent.action.TEXT, (assistant) => {
 
             // reads the user's request
             var msg = {topic:node.topic, intent: 'TEXT', payload:assistant.getRawInput(), _assistant:assistant};
