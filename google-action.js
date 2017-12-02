@@ -1,8 +1,7 @@
 
 module.exports = function(RED) {
     "use strict";
-    var _googleActionServer = require("@manekinekko/google-actions-server");
-
+    import { ActionServer } from '@manekinekko/google-actions-server';
 
     function GoogleActionIn(n) {
         RED.nodes.createNode(this,n);
@@ -12,14 +11,14 @@ module.exports = function(RED) {
         node.port = n.port || 1881;
 
         // create a google action server
-        this.agent = new _googleActionServer.ActionServer(node.port);
+        this.agent = new ActionServer(node.port);
 
         this.agent.welcome((assistant) => {
             this.agent.ask('What is your command');
         });
 
 
-        this.agent.intent(_googleActionServer.intent.action.MAIN, (assistant) => {
+        this.agent.intent(ActionServer.intent.action.MAIN, (assistant) => {
 
             // reads the user's request
             var msg = {topic:node.topic, intent:'MAIN', payload:assistant.getRawInput(), _assistant:assistant };
@@ -28,7 +27,7 @@ module.exports = function(RED) {
         });
 
 
-        this.agent.intent(_googleActionServer.intent.action.TEXT, (assistant) => {
+        this.agent.intent(ActionServer.intent.action.TEXT, (assistant) => {
 
             // reads the user's request
             var msg = {topic:node.topic, intent: 'TEXT', payload:assistant.getRawInput(), _assistant:assistant};
