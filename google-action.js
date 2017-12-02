@@ -12,7 +12,7 @@ module.exports = function(RED) {
         node.port = n.port || 1881;
 
         // create a google action server
-        this.agent = new _googleActionsServer.ActionServer(port=node.port);
+        this.agent = new _googleActionServer.ActionServer(port=node.port);
 
         this.agent.welcome((assistant) => {
             agent.ask('What is your command');
