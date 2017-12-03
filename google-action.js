@@ -39,17 +39,17 @@ module.exports = function(RED) {
         node.httpServer.use(bodyParser.json({ type: 'application/json' }));
 
         // Handler for requests
-        node.httpServer.post(node.url, (request, response) => {
+        node.httpServer.all(node.url, (request, response) => {
 
 
-            this.assistant = new ActionsSdkAssistant({ request, response });
-            this.assistant.handleRequest(function(app) {
+            var app = new ActionsSdkApp({ request, response });
+            app.handleRequest(function(app) {
 
                 var msg = {topic: node.topic,
-                            app: this.app,
-                            conversationId: this.app.getConversationId(),
-                            intent: this.app.getIntent(),
-                            payload: this.app.getRawInput(),
+                            app: app,
+                            conversationId: app.getConversationId(),
+                            intent: app.getIntent(),
+                            payload: app.getRawInput(),
                             closeConversation: true,
                         };
 
