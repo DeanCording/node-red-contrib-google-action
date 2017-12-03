@@ -2,9 +2,7 @@
   "name": "node-red-contrib-google-action",
   "version": "1.0.0",
   "description": "A node-red node for interfacing with actions from Google Assistant.",
-  "dependencies": {
-    "@manekinekko/google-actions-server": "2.0.*"
-  },
+  "dependencies": {},
   "author": {
     "name": "Dean Cording",
     "email": "dean@cording.id.au"
