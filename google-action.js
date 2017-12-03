@@ -25,6 +25,10 @@ module.exports = function(RED) {
     const bodyParser = require('body-parser');
 
 
+    // Map of app handlers
+    // ActionsSdkApp can't be cloned so we need to keep a central copy.
+
+    var appMap = new Map();
 
     function GoogleActionIn(n) {
         RED.nodes.createNode(this,n);
@@ -32,12 +36,8 @@ module.exports = function(RED) {
         var node = this;
 
         node.url = n.url || '/';
-        node.port = n.port || 1881;
+        node.port = n.port || 8081;
 
-        // Map of app handlers
-        // ActionsSdkApp can't be cloned so we need to keep a central copy.
-
-        node.appMap = new Map();
 
         // Create new http server to listen for requests
         node.httpServer = express();
@@ -50,10 +50,9 @@ module.exports = function(RED) {
             var app = new ActionsSdkApp({ request, response });
             app.handleRequest(function() {
 
-                node.appMap.set(spp.getConversationId(), app);
+                appMap.set(app.getConversationId(), app);
 
                 var msg = {topic: node.topic,
-                            _appMap: node.appMap,
                             conversationId: app.getConversationId(),
                             intent: app.getIntent(),
                             payload: app.getRawInput(),
@@ -87,17 +86,16 @@ module.exports = function(RED) {
 
         this.on("input",function(msg) {
 
-            if (msg._appMap) {
+            var app = appMap.get(msg.conversationId);
 
-                var app = msg._appMap.get(msg.conversationId);
-
+            if (app) {
                 if (msg.closeConversation) {
-                    msg.app.tell(msg.payload);
+                    app.tell(msg.payload);
                 } else {
-                    msg.app.ask(msg.payload);
+                    app.ask(msg.payload);
                 }
             } else {
-                node.warn(RED._("httpin.errors.no-response"));
+                node.warn("Invalid conversation id");
             }
         });
     }
