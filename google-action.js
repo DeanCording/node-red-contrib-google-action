@@ -61,14 +61,13 @@ module.exports = function(RED) {
         });
 
         // Start listening
-        node.httpServer.listen(node.port);
+        node.listener = node.httpServer.listen(node.port);
 
-        node.log("started");
 
+	// Stop listening
         node.on('close', function(done) {
-            node.httpServer.close(function(done){
+            node.listener.close(function(){
                 done();
-                node.log("stopped");
             });
         });
 
