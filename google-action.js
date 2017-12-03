@@ -55,7 +55,7 @@ module.exports = function(RED) {
 
                 node.send(msg);
 
-                node.trace("Google Action request: " + msg.payload);
+                node.trace("request: " + msg.payload);
 
             });
         });
@@ -63,13 +63,12 @@ module.exports = function(RED) {
         // Start listening
         node.httpServer.listen(node.port);
 
-        node.log("Google Action listener " + (node.name?node.name:'') + " started");
-
+        node.log("started");
 
         node.on('close', function(done) {
             node.httpServer.close(function(done){
-                node.log("Google Action listener " + (node.name?node.name:'') + " stopped");
                 done();
+                node.log("stopped");
             });
         });
 
