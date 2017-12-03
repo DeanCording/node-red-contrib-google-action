@@ -62,6 +62,10 @@ module.exports = function(RED) {
         node.httpServer.listen(node.port);
 
 
+        node.on('close', function(done) {
+           node.httpServer.close(function(done){done();}));
+        });
+
     }
     RED.nodes.registerType("google-action in",GoogleActionIn);
 
