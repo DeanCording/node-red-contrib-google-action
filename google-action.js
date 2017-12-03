@@ -63,7 +63,7 @@ module.exports = function(RED) {
 
 
         node.on('close', function(done) {
-           node.httpServer.close(function(done){done();}));
+           node.httpServer.close(function(done){done();});
         });
 
     }
