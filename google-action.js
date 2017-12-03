@@ -1,42 +1,67 @@
+/*****
+
+node-red-contrib-google-action - A Node Red node to handle actions from Google Assistant
+
+MIT License
+
+Copyright (c) 2017 Dean Cording
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+
 
 module.exports = function(RED) {
     "use strict";
-    import { ActionServer } from '@manekinekko/google-actions-server';
+
+    const ActionsSdkApp = require('actions-on-google').ActionsSdkApp;
+
+    const express = require('express');
+
+    import bodyParser from 'body-parser';
+
 
     function GoogleActionIn(n) {
         RED.nodes.createNode(this,n);
 
         var node = this;
 
+        node.url = n.url || '/';
         node.port = n.port || 1881;
 
-        // create a google action server
-        this.agent = new ActionServer(node.port);
 
-        this.agent.welcome((assistant) => {
-            this.agent.ask('What is your command');
+        // Create new http server to listen for requests
+        node.httpServer = express();
+        node.httpServer.use(bodyParser.json({ type: 'application/json' }));
+
+        // Handler for requests
+        node.httpServer.post(node.url, (request, response) => {
+
+
+            this.assistant = new ActionsSdkAssistant({ request, response });
+            this.assistant.handleRequest(function(app) {
+
+                var msg = {topic: node.topic,
+                            _app: this.app,
+                            conversationId: this.app.getConversationId(),
+                            intent: this.app.getIntent(),
+                            payload: this.app.getRawInput(),
+                            closeConversation: true,
+                        };
+
+                node.send(msg);
+
+            });
         });
 
-
-        this.agent.intent(ActionServer.intent.action.MAIN, (assistant) => {
-
-            // reads the user's request
-            var msg = {topic:node.topic, intent:'MAIN', payload:assistant.getRawInput(), _assistant:assistant };
-            node.send(msg);
-
-        });
+        // Start listening
+        node.httpServer.listen(node.port);
 
 
-        this.agent.intent(ActionServer.intent.action.TEXT, (assistant) => {
-
-            // reads the user's request
-            var msg = {topic:node.topic, intent: 'TEXT', payload:assistant.getRawInput(), _assistant:assistant};
-            node.send(msg);
-
-        });
-
-        // start listening for commands
-        this.agent.listen();
     }
     RED.nodes.registerType("google-action in",GoogleActionIn);
 
@@ -47,8 +72,12 @@ module.exports = function(RED) {
 
         this.on("input",function(msg) {
 
-            if (msg._assistant) {
-                msg._assistant.tell(msg.payload);
+            if (msg._app) {
+                if (msg.closeConversation) {
+                    msg._app.tell(msg.payload);
+                } else {
+                    msg._app.ask(msg.payload);
+                }
             } else {
                 node.warn(RED._("httpin.errors.no-response"));
             }

@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "A node-red node for interfacing with actions from Google Assistant.",
   "dependencies": {
-    "@manekinekko/google-actions-server": "2.0.*"
+    "actions-on-google": "1.6.*",
+    "express": "^4.16",
+    "body-parser": "^1.18"
   },
   "author": {
     "name": "Dean Cording",
