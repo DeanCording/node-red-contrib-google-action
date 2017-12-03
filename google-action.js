@@ -25,6 +25,7 @@ module.exports = function(RED) {
     const bodyParser = require('body-parser');
 
 
+
     function GoogleActionIn(n) {
         RED.nodes.createNode(this,n);
 
@@ -33,6 +34,10 @@ module.exports = function(RED) {
         node.url = n.url || '/';
         node.port = n.port || 1881;
 
+        // Map of app handlers
+        // ActionsSdkApp can't be cloned so we need to keep a central copy.
+
+        node.appMap = new Map();
 
         // Create new http server to listen for requests
         node.httpServer = express();
@@ -43,10 +48,12 @@ module.exports = function(RED) {
 
 
             var app = new ActionsSdkApp({ request, response });
-            app.handleRequest(function(app) {
+            app.handleRequest(function() {
+
+                node.appMap.set(spp.getConversationId(), app);
 
                 var msg = {topic: node.topic,
-                            app: app,
+                            _appMap: node.appMap,
                             conversationId: app.getConversationId(),
                             intent: app.getIntent(),
                             payload: app.getRawInput(),
@@ -80,7 +87,10 @@ module.exports = function(RED) {
 
         this.on("input",function(msg) {
 
-            if (msg._app) {
+            if (msg._appMap) {
+
+                var app = msg._appMap.get(msg.conversationId);
+
                 if (msg.closeConversation) {
                     msg.app.tell(msg.payload);
                 } else {
