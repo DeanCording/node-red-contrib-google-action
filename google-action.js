@@ -22,7 +22,7 @@ module.exports = function(RED) {
 
     const express = require('express');
 
-    import bodyParser from 'body-parser';
+    const bodyParser = require('body-parser');
 
 
     function GoogleActionIn(n) {
