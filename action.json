@@ -4,22 +4,23 @@
       "description": "Default Welcome Intent",
       "name": "MAIN",
       "fulfillment": {
-        "conversationName": "<INSERT YOUR CONVERSATION NAME HERE>"
+        "conversationName": "Node Red"
       },
       "intent": {
         "name": "actions.intent.MAIN",
         "trigger": {
           "queryPatterns": [
-            "talk to <INSERT YOUR NAME HERE>"
+            "talk to Node Red"
           ]
         }
       }
     }
   ],
   "conversations": {
-    "<INSERT YOUR CONVERSATION NAME HERE>": {
-      "name": "<INSERT YOUR CONVERSATION NAME HERE>",
-      "url": "<INSERT YOUR FULLFILLMENT URL HERE>"
+    "nodeRedApp": {
+      "name": "nodeRedApp",
+      "url": "http://www.cording.id.au:8081/",
+      "fulfillmentApiVersion": 2
     }
   }
 }

@@ -46,7 +46,7 @@ module.exports = function(RED) {
             this.assistant.handleRequest(function(app) {
 
                 var msg = {topic: node.topic,
-                            _app: this.app,
+                            app: this.app,
                             conversationId: this.app.getConversationId(),
                             intent: this.app.getIntent(),
                             payload: this.app.getRawInput(),
@@ -63,8 +63,7 @@ module.exports = function(RED) {
         // Start listening
         node.listener = node.httpServer.listen(node.port);
 
-
-	// Stop listening
+        // Stop listening
         node.on('close', function(done) {
             node.listener.close(function(){
                 done();
@@ -83,9 +82,9 @@ module.exports = function(RED) {
 
             if (msg._app) {
                 if (msg.closeConversation) {
-                    msg._app.tell(msg.payload);
+                    msg.app.tell(msg.payload);
                 } else {
-                    msg._app.ask(msg.payload);
+                    msg.app.ask(msg.payload);
                 }
             } else {
                 node.warn(RED._("httpin.errors.no-response"));
