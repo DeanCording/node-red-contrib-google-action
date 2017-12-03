@@ -55,15 +55,22 @@ module.exports = function(RED) {
 
                 node.send(msg);
 
+                node.trace("Google Action request: " + msg.payload);
+
             });
         });
 
         // Start listening
         node.httpServer.listen(node.port);
 
+        node.log("Google Action listener " + (node.name?node.name:'') + " started");
+
 
         node.on('close', function(done) {
-           node.httpServer.close(function(done){done();});
+            node.httpServer.close(function(done){
+                node.log("Google Action listener " + (node.name?node.name:'') + " stopped");
+                done();
+            });
         });
 
     }
