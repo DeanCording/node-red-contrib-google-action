@@ -49,7 +49,7 @@ module.exports = function(RED) {
 
                 // Create new http server to listen for requests
         var expressApp = express();
-        expressApp.use(bodyParser.json({ type: 'application/json' });
+        expressApp.use(bodyParser.json({ type: 'application/json' }));
         node.httpServer = https.createServer(options, expressApp);
 
         // Handler for requests

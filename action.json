@@ -4,7 +4,7 @@
       "description": "Default Welcome Intent",
       "name": "MAIN",
       "fulfillment": {
-        "conversationName": "Node Red"
+        "conversationName": "nodeRedApp"
       },
       "intent": {
         "name": "actions.intent.MAIN",
