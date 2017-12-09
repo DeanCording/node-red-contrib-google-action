@@ -63,6 +63,7 @@ module.exports = function(RED) {
                 var msg = {topic: node.topic,
                             conversationId: app.getConversationId(),
                             intent: app.getIntent(),
+                            userId: app.getUser().userId,
                             dialogState: app.getDialogState(),
                             payload: app.getRawInput(),
                             closeConversation: true,
@@ -100,6 +101,7 @@ module.exports = function(RED) {
             if (app) {
                 if (msg.closeConversation) {
                     app.tell(msg.payload);
+                    appMap.del(msg.conversationId);
                 } else {
                     app.ask(msg.payload, msg.dialogState);
                 }
