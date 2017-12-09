@@ -1,6 +1,6 @@
 /*****
 
-node-red-contrib-google-action - A Node Red node to handle actions from Google Assistant
+node-red-contrib-google-action - A Node Red node to handle actions from Google Actions
 
 MIT License
 

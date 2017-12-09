@@ -1,5 +1,5 @@
 <!--
-node-red-contrib-google-action - A Node Red node to handle actions from Google Assistant
+node-red-contrib-google-action - A Node Red node to handle actions from Google Action
 
 MIT License
 
@@ -47,7 +47,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         <dd>A identifier for the conversation.  If the flow asks the user a question, the response will
         have the same identifier.<dd>
         <dt>intent<span class="property-type">string</span><dt>
-        <dd>Indicates the entry point into the converstation with the user.  Main intents are:
+        <dd>Indicates the intent of the conversation with the user.<br/>The main intents are:
         <ul>
         <li>actions.intent.MAIN - Default entry point at start of conversation</li>
         <li>actions.intent.TEXT - A turn of the conversation</li>
@@ -90,7 +90,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         <dd>The text of the response to be returned.  The response can be in plain text or marked up
         using <a href="https://developers.google.com/actions/reference/ssml">SSML</a>.</dd>
         <dt>closeConversation<span class="property-type">boolean</span></dt>
-        <dd>If true, the converation will be terminated after this response. Otherwise the conversation will remain active.</dd>
+        <dd>If true, the converation will be terminated after this response. Otherwise the conversation will remain active and wait for further input from the user.</dd>
     </dl>
     <h3>Details</h3>
     <p>Returns a response to an action request received from a Google Action Input node.</p>
