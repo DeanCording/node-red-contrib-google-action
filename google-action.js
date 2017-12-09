@@ -21,9 +21,11 @@ module.exports = function(RED) {
     const ActionsSdkApp = require('actions-on-google').ActionsSdkApp;
 
     const express = require('express');
+    const https = require("https");
+    const fs = require('fs');
+
 
     const bodyParser = require('body-parser');
-
 
     // Map of app handlers
     // ActionsSdkApp can't be cloned so we need to keep a central copy.
@@ -37,15 +39,21 @@ module.exports = function(RED) {
 
         node.url = n.url || '/';
         node.port = n.port || 8081;
+        node.key = n.key || '';
+        node.cert = n.cert || '';
 
+        const options = {
+            key: fs.readFileSync(node.key),
+            cert: fs.readFileSync(node.cert)
+        };
 
-        // Create new http server to listen for requests
-        node.httpServer = express();
-        node.httpServer.use(bodyParser.json({ type: 'application/json' }));
+                // Create new http server to listen for requests
+        var expressApp = express();
+        expressApp.use(bodyParser.json({ type: 'application/json' });
+        node.httpServer = https.createServer(options, expressApp);
 
         // Handler for requests
-        node.httpServer.all(node.url, (request, response) => {
-
+        expressApp.all(node.url, (request, response) => {
 
             var app = new ActionsSdkApp({ request, response });
             app.handleRequest(function() {
@@ -55,6 +63,7 @@ module.exports = function(RED) {
                 var msg = {topic: node.topic,
                             conversationId: app.getConversationId(),
                             intent: app.getIntent(),
+                            dialogState: app.getDialogState(),
                             payload: app.getRawInput(),
                             closeConversation: true,
                         };
@@ -67,11 +76,11 @@ module.exports = function(RED) {
         });
 
         // Start listening
-        node.listener = node.httpServer.listen(node.port);
+        node.httpServer.listen(node.port);
 
         // Stop listening
         node.on('close', function(done) {
-            node.listener.close(function(){
+            node.httpServer.close(function(){
                 done();
             });
         });
@@ -92,7 +101,7 @@ module.exports = function(RED) {
                 if (msg.closeConversation) {
                     app.tell(msg.payload);
                 } else {
-                    app.ask(msg.payload);
+                    app.ask(msg.payload, msg.dialogState);
                 }
             } else {
                 node.warn("Invalid conversation id");

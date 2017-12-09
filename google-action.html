@@ -31,6 +31,14 @@
         <label for="node-input-url"><i class="fa fa-tag"></i> URL</span></label>
         <input id="node-input-url" type="text" placeholder="/">
     </div>
+    <div class="form-row">
+        <label for="node-input-key"><i class="fa fa-tag"></i> SSL Private Key File</span></label>
+        <input id="node-input-url" type="text" placeholder="/path/on/server/to/private.key">
+    </div>
+    <div class="form-row">
+        <label for="node-input-cert"><i class="fa fa-tag"></i> SSL Certificate File</span></label>
+        <input id="node-input-cert" type="text" placeholder="/path/on/server/to/certificate.crt">
+    </div>
 </script>
 
 <script type="text/x-red" data-help-name="google-action in">
@@ -135,7 +143,9 @@ msg.cookies = {
             name: {value:""},
             topic: {value:""},
             port: {value:"8081",required:true},
-            url: {value:"/", required:true}
+            url: {value:"/", required:true},
+            key: {value:"", requred:true},
+            cert: {value: "", required:true}
         },
         inputs:0,
         outputs:1,
