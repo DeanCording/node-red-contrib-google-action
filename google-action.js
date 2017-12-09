@@ -100,10 +100,10 @@ module.exports = function(RED) {
 
             if (app) {
                 if (msg.closeConversation) {
-                    app.tell(msg.payload);
-                    appMap.del(msg.conversationId);
+                    app.tell(msg.payload.toString());
+                    appMap.delete(msg.conversationId);
                 } else {
-                    app.ask(msg.payload, msg.dialogState);
+                    app.ask(msg.payload.toString(), msg.dialogState);
                 }
             } else {
                 node.warn("Invalid conversation id");
