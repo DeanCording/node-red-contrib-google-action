@@ -20,7 +20,12 @@
     "nodeRedApp": {
       "name": "nodeRedApp",
       "url": "https://www.cording.id.au:8081/",
-      "fulfillmentApiVersion": 2
+      "fulfillmentApiVersion": 2,
+      "in_dialog_intents": [
+        {
+          "name": "actions.intent.CANCEL"
+        }
+      ]
     }
   }
 }
