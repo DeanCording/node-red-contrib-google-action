@@ -29,7 +29,7 @@ Be aware that Google Assistant isn't really intended to run private apps.  It is
 
 Also be aware that there is no security mechanism in this implementation yet.  Google uses [OAuth2.0](https://developers.google.com/actions/identity/oauth2-code-flow) to authorise users to access your end point.  It will be added in a future release (or send me a pull request :-).
 
-The following is a sample flow to process action requests.  It will respond to questions involving the works 'number' or 'fancy' like 'pick a number', 'what is your number', 'what number are you', 'say something fancy', 'talk fancy talk', etc.
+The following is a sample flow to process action requests.  It will respond to questions involving the words 'number' or 'fancy' like 'pick a number', 'what is your number', 'what number are you', 'say something fancy', 'talk fancy talk', etc.
 
 ```
 [{"id":"b2b4dadb.71afd8","type":"google-action in","z":"8b42e25d.61776","name":"Action Request","topic":"action","port":"8081","url":"/","key":"/home/sysadmin/.node-red/server.key","cert":"/home/sysadmin/.node-red/server.crt","x":80,"y":820,"wires":[["3f0e417b.e29d6e","1e01ff5f.77f521"]]},
