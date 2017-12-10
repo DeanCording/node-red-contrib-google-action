@@ -65,9 +65,17 @@ module.exports = function(RED) {
                             intent: app.getIntent(),
                             userId: app.getUser().userId,
                             dialogState: app.getDialogState(),
-                            payload: app.getRawInput(),
                             closeConversation: true,
                         };
+
+                switch(msg.intent) {
+                    case 'actions.intent.OPTION':
+                        msg.payload = app.getSelectedOption();
+                        break;
+                    default:
+                        msg.payload = app.getRawInput();
+                }
+
 
                 node.send(msg);
 
