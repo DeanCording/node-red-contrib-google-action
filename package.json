@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-google-action",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A node-red node for interfacing with actions from Google Assistant.",
   "dependencies": {
     "actions-on-google": "1.6.*",
@@ -24,7 +24,7 @@
   "homepage": "https://github.com/DeanCording/node-red-contrib-google-action",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DeanCording/node-red-contrib-google.action.git"
+    "url": "https://github.com/DeanCording/node-red-contrib-google-action.git"
   },
   "node-red": {
     "nodes": {
