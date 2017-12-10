@@ -3,7 +3,7 @@ Node Red nodes to receive and respond to Google Action requests from Google Assi
 
 Google Assistant is Google's personal assistant that provides the voice recognition and natural language processing behind Google's Android and Home devices.  Google Actions allow you to build conversational agents that interact with the user using a query-response conversation style.
 
-This node is a wrapper around Google's [actions-on-google-nodejs](https://github.com/actions-on-google/actions-on-google-nodejs) lient library using the [Actions SDK](https://developers.google.com/actions/reference/nodejs/ActionsSdkApp).
+This node is a wrapper around Google's [actions-on-google-nodejs](https://github.com/actions-on-google/actions-on-google-nodejs) client library using the [Actions SDK](https://developers.google.com/actions/reference/nodejs/ActionsSdkApp).
 
 The node runs an Express web server to listen for Action request from Google.  By using a separate web server from Node Red, it allows the node to listen on a different port.  This allows the Action listener to be exposed to the Internet without having the rest of Node Red also exposed.  The web server is required to run HTTPS so you will need SSL certificates. Self signed certificates are OK.
 
