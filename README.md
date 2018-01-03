@@ -13,7 +13,7 @@ Once the request has been process, the response is passed to the Google Action R
 
 A response can either complete the processing of the action or can request further information from the user.
 
-The action.json file is used to configure your app on Google Assistant.  The main thing you will need to change is the url of your Node Red server.
+The [action.json](https://github.com/DeanCording/node-red-contrib-google-action/blob/master/action.json) file is used to configure your app on Google Assistant.  The main thing you will need to change is the url of your Node Red server.
 
 To deploy your app, you will need an account on [Google Actions](https://developers.google.com/actions/).  Create a new project in the console and make a note of the project id.
 
