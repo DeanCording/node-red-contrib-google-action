@@ -19,7 +19,6 @@ module.exports = function(RED) {
     "use strict";
 
     const ActionsSdkApp = require('actions-on-google').ActionsSdkApp;
-
     const express = require('express');
     const https = require("https");
     const fs = require('fs');
@@ -59,13 +58,33 @@ module.exports = function(RED) {
             app.handleRequest(function() {
 
                 appMap.set(app.getConversationId(), app);
+       	        var requestData = {};
+		var requestArgs = {};
+	        const data = app.requestData();
+                if (data){
+			requestData = data;
+		}
+		if (data && data.inputs) {
+		  
+                  for (const input of data.inputs) {
+                   if (input.arguments) {
+                    for (const argument of input.arguments) {
+                      requestArgs[argument.name] = argument.textValue;
+            
+                    }
+                   }
+                 }
+               }
+
 
                 var msg = {topic: node.topic,
                             conversationId: app.getConversationId(),
                             intent: app.getIntent(),
-                            userId: app.getUser().userId,
+                            userId: app.getUser(),userID,
                             dialogState: app.getDialogState(),
                             closeConversation: true,
+			    arguments: requestArgs,
+			    data: requestData
                         };
 
                 switch(msg.intent) {
