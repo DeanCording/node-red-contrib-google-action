@@ -19,7 +19,6 @@ module.exports = function(RED) {
     "use strict";
 
     const ActionsSdkApp = require('actions-on-google').ActionsSdkApp;
-//    const DialogflowApp = require('actions-on-google').DialogflowApp;
     const express = require('express');
     const https = require("https");
     const fs = require('fs');
@@ -55,7 +54,6 @@ module.exports = function(RED) {
         // Handler for requests
         expressApp.all(node.url, (request, response) => {
 
-//            var app = new DialogflowApp({ request, response });
             var app = new ActionsSdkApp({ request, response });
             app.handleRequest(function() {
 
@@ -82,7 +80,7 @@ module.exports = function(RED) {
                 var msg = {topic: node.topic,
                             conversationId: app.getConversationId(),
                             intent: app.getIntent(),
-                            userId: "none",
+                            userId: app.getUser(),userID,
                             dialogState: app.getDialogState(),
                             closeConversation: true,
 			    arguments: requestArgs,
