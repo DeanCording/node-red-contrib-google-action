@@ -24,7 +24,6 @@ module.exports = function(RED) {
     const https = require("https");
     const fs = require('fs');
 
-
     const bodyParser = require('body-parser');
 
     // Map of app handlers
@@ -59,14 +58,15 @@ module.exports = function(RED) {
             app.handleRequest(function() {
 
                 appMap.set(app.getConversationId(), app);
-
                 var msg = {topic: node.topic,
                             conversationId: app.getConversationId(),
                             intent: app.getIntent(),
-                            userId: app.getUser().userId,
                             dialogState: app.getDialogState(),
                             closeConversation: true,
                         };
+		    
+                var user = app.getUser();
+                msg.userId = (user ? user.userId : 0);
 
                 switch(msg.intent) {
                     case 'actions.intent.OPTION':

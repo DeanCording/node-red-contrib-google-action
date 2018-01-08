@@ -19,7 +19,7 @@
   "conversations": {
     "nodeRedApp": {
       "name": "nodeRedApp",
-      "url": "https://your.server.address:8081/",
+      "url": "https://www.cording.id.au:8081/",
       "fulfillmentApiVersion": 2,
       "in_dialog_intents": [
         {
