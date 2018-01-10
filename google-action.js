@@ -76,6 +76,7 @@ module.exports = function(RED) {
 		    
                 var user = app.getUser();
                 msg.userId = (user ? user.userId : 0);
+                msg.locale = (user ? user.locale : "");
 
                 switch(msg.intent) {
                     case 'actions.intent.OPTION':
@@ -96,8 +97,11 @@ module.exports = function(RED) {
         // Start listening
         node.httpServer.listen(node.port);
 
+        node.log("Listening on port " + node.port);
+
         // Stop listening
         node.on('close', function(done) {
+            appMap.clear();
             node.httpServer.close(function(){
                 done();
             });
@@ -120,7 +124,12 @@ module.exports = function(RED) {
                     app.tell(msg.payload.toString());
                     appMap.delete(msg.conversationId);
                 } else {
-                    app.ask(msg.payload.toString(), msg.dialogState);
+                    if (Array.isArray(msg.payload)) {
+                        app.ask(app.buildInputPrompt(msg.payload[0].startsWith("<speak>"), msg.payload[0],
+                                             msg.payload.slice(1,4)), msg.dialogState);
+                    } else {
+                        app.ask(msg.payload.toString(), msg.dialogState);
+                    }
                 }
             } else {
                 node.warn("Invalid conversation id");
@@ -128,4 +137,4 @@ module.exports = function(RED) {
         });
     }
     RED.nodes.registerType("google-action response",GoogleActionOut);
-}
+};

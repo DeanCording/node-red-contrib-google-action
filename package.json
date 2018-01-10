@@ -4,8 +4,8 @@
   "description": "A node-red node for interfacing with actions from Google Assistant.",
   "dependencies": {
     "actions-on-google": "1.6.*",
-    "express": "^4.16",
-    "body-parser": "^1.18"
+    "body-parser": "^1.18",
+    "express": "^4.16"
   },
   "author": {
     "name": "Dean Cording",

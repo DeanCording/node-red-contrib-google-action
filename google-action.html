@@ -50,23 +50,33 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 <script type="text/x-red" data-help-name="google-action in">
     <p>Creates an end-point for receiving requests from Google Actions.</p>
+    <h3>Properties</h3>
+    <dl class="message-properties">
+        <dt>name <span class="property-type">string </span><dt>
+        <dd>name of node displayed in editor </dd>
+        <dt>topic <span class="property-type">string </span><dt>
+        <dd>topic applied to <code>msg</code> </dd>
+        <dt>port <span class="property-type"> integer</span><dt>
+        <dd>port number for server to listen on </dd>
+        <dt>url <span class="property-type"> string</span><dt>
+        <dd>url for server to listen on </dd>
+        <dt>SSL private key file <span class="property-type">filename </span><dt>
+        <dd>full path to SSL private key file on Node Red server</dd>
+        <dt>SSl certificate file <span class="property-type">filename </span><dt>
+        <dd>full pathname to SSL certificate file on Node Red server</dd>
+    </dl>
     <h3>Outputs</h3>
     <dl class="message-properties">
         <dt>conversationId<span class="property-type">string</span><dt>
         <dd>A identifier for the conversation.  If the flow asks the user a question, the response will
         have the same identifier.<dd>
         <dt>intent<span class="property-type">string</span><dt>
-        <dd>Indicates the intent of the conversation with the user.<br/>The main intents are:
-        <ul>
-        <li>actions.intent.MAIN - Default entry point at start of conversation</li>
-        <li>actions.intent.TEXT - A turn of the conversation</li>
-        <li>actions.intent.CANCEL - The user has terminated the conversation</li>
-        </ul>
-        See <a href="https://developers.google.com/actions/reference/rest/intents">Google Actions Reference</a> for more information.
-        </dd>
+        <dd>Indicates the intent of the conversation with the user.</dd>
         <dt>userId<span class="property-type">string</span></dt>
         <dd>A unique identifier for the user. If the user is registered and recognised then the user id
         is consistent across conversations.</dd>
+        <dt>locale<span class="property-type">string</span></dt>
+        <dd>country and language code for the request</dd>
         <dt>dialogState<span class="property-type">object</span></dt>
         <dd>An object that can be used to store state information between turns of the conversation.</dd>
         <dt>payload<span class="property-type">string</span></dt>
@@ -74,6 +84,13 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     </dl>
     <h3>Details</h3>
     <p>The node will listen for incoming action requests from Google Actions.</p>
+    <p>The main intents for requests are:
+        <ul>
+        <li>actions.intent.MAIN - Default entry point at start of conversation</li>
+        <li>actions.intent.TEXT - A turn of the conversation</li>
+        <li>actions.intent.CANCEL - The user has terminated the conversation</li>
+        </ul>
+        See <a href="https://developers.google.com/actions/reference/rest/intents">Google Actions Reference</a> for more information.</p>
     <p><b>Note:</b> this node does not send any response to the request. The flow
        must include an Google Action Response node to complete the request.</p>
 </script>
@@ -95,15 +112,20 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         <dd>A identifier for the conversation that this is a response for.  If the flow asks the user a question, the response will have the same identifier.<dd>
         <dt>dialogState<span class="property-type">object</span></dt>
         <dd>An object that can be used to store state information between turns of the conversation.</dd>
-        <dt>payload <span class="property-type">string</span></dt>
-        <dd>The text of the response to be returned.  The response can be in plain text or marked up
-        using <a href="https://developers.google.com/actions/reference/ssml">SSML</a>.</dd>
+        <dt>payload <span class="property-type">string|array</span></dt>
+        <dd>The text of the response to be returned.</dd>
         <dt>closeConversation<span class="property-type">boolean</span></dt>
         <dd>If true, the converation will be terminated after this response. Otherwise the conversation will remain active and wait for further input from the user.</dd>
     </dl>
     <h3>Details</h3>
     <p>Returns a response to an action request received from a Google Action Input node.</p>
 
+    <p>The response can be in plain text or marked up using
+    <a href="https://developers.google.com/actions/reference/ssml">SSML</a> for additional control of speech
+    output.  An array of up to four messages can be provided if you are asking the user for input.  The
+    first message is used as the prompt to the user for input.  The second and third messages are used as
+    follow up prompts if no input is received.  The fourth message is used to terminate the conversation.
+    If less than four messages are provided, default messages will be used.</p>
 
 </script>
 
