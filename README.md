@@ -13,7 +13,8 @@ Once the request has been process, the response is passed to the Google Action R
 
 A response can either complete the processing of the action or can request further information from the user.
 
-To deploy your app, you will need an account on [Google Actions](https://developers.google.com/actions/).  Create a new project in the console and make a note of the project id.
+To deploy your app, you will need an account on [Google Actions](https://developers.google.com/actions/).
+Create a new project in the console and make a note of the project id.
 
 Do not define any action in the Google Actions Console as we are going to use the [gactions CLI](https://developers.google.com/actions/tools/gactions-cli) utility to configure your app on Google Assistant.
 
