@@ -14,22 +14,20 @@ Once the request has been process, the response is passed to the Google Action R
 A response can either complete the processing of the action or can request further information from the user.
 
 To deploy your app, you will need an account on [Google Actions](https://developers.google.com/actions/).
-Create a new project in the console and make a note of the project id.
 
-Do not define any action in the Google Actions Console as we are going to use the [gactions CLI](https://developers.google.com/actions/tools/gactions-cli) utility to configure your app on Google Assistant.
+  * Create a new project in the console and make a note of the project id.
 
-Install the [gactions CLI](https://developers.google.com/actions/tools/gactions-cli) utility on your machine.<br>
-In the Gaction CLI install folder, locate the action.json files that defines the app configuration.<br>
-Modify the json file following our [example](https://github.com/DeanCording/node-red-contrib-google-action/blob/master/action.json).<br>
-The main thing you will need to change is the url of your Node Red server.
+  * Do not define any action in the Google Actions Console as we are going to use the [gactions CLI](https://developers.google.com/actions/tools/gactions-cli) utility to configure your app on Google Assistant.
 
-(here is also full [Documentation](https://developers.google.com/actions/reference/rest/Shared.Types/ActionPackage) about the structure of the action.json).
+  * Install the [gactions CLI](https://developers.google.com/actions/tools/gactions-cli) utility on your machine.
 
-Now use the [gactions CLI](https://developers.google.com/actions/tools/gactions-cli) utility to publish your app onto Google Assistant.
+  * Copy the example [action.json](https://github.com/DeanCording/node-red-contrib-google-action/blob/master/action.json) to your local drive and modify it to suit your application. The main thing you will need to change is the url of your Node Red server. ([Documentation](https://developers.google.com/actions/reference/rest/Shared.Types/ActionPackage) about the structure of the action.json).
+
+  * Now use the [gactions CLI](https://developers.google.com/actions/tools/gactions-cli) utility to publish your app onto Google Assistant.
 
 `gactions test -preview_mins 9999999 -action_package action.json -project your-project-id`
 
-You can test you app using the simulator in the Google Actions console or from any device linked to your Google account. To access your app say:
+  * You can test you app using the simulator in the Google Actions console or from any device linked to your Google account. To access your app say:
 
 `Hey Google, talk to my test app`
 
