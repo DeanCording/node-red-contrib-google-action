@@ -1,5 +1,5 @@
 /*****
-
+2.0
 node-red-contrib-google-action - A Node Red node to handle actions from Google Actions
 
 MIT License
