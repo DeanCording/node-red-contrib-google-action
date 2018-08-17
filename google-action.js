@@ -50,6 +50,7 @@ module.exports = function(RED) {
         node.port = n.port || 8081;
         node.key = n.key || '';
         node.cert = n.cert || '';
+        node.protocol = n.protocol || 'https';
 
         // Create new http server to listen for requests
         var expressApp = express();
