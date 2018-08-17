@@ -31,6 +31,7 @@ module.exports = function(RED) {
 
     const express = require('express');
     const https = require("https");
+    const http = require("http");
     const fs = require('fs');
 
     const bodyParser = require('body-parser');
@@ -49,16 +50,23 @@ module.exports = function(RED) {
         node.port = n.port || 8081;
         node.key = n.key || '';
         node.cert = n.cert || '';
+        node.protocol = n.protocol || 'https';
 
-        const options = {
-            key: fs.readFileSync(node.key),
-            cert: fs.readFileSync(node.cert)
-        };
-
-                // Create new http server to listen for requests
+        // Create new http server to listen for requests
         var expressApp = express();
         expressApp.use(bodyParser.json({ type: 'application/json' }));
-        node.httpServer = https.createServer(options, expressApp);
+
+        if (node.protocol === "https") {
+            const options = {
+                key: fs.readFileSync(node.key),
+                cert: fs.readFileSync(node.cert)
+            };
+
+            node.httpServer = https.createServer(options, expressApp);
+        } else {
+            node.httpServer = http.createServer(expressApp);
+        }
+
 
         // Handler for requests
         expressApp.all(node.url, (request, response) => {

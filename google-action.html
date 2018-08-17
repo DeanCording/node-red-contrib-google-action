@@ -39,11 +39,18 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         <input id="node-input-url" type="text" placeholder="/">
     </div>
     <div class="form-row">
-        <label for="node-input-key"><i class="fa fa-tag"></i> SSL Private Key File</span></label>
+        <label for="node-input-protocol"><i class="fa fa-tag"></i> Protocol</span></label>
+        <select id="node-input-protocol">
+            <option value="http">HTTP</option>
+            <option value="https">HTTPS</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label id="node-input-label-key" for="node-input-key"><i class="fa fa-tag"></i> SSL Private Key File</span></label>
         <input id="node-input-key" type="text" placeholder="/path/on/server/to/private.key">
     </div>
     <div class="form-row">
-        <label for="node-input-cert"><i class="fa fa-tag"></i> SSL Certificate File</span></label>
+        <label id="node-input-label-cert" for="node-input-cert"><i class="fa fa-tag"></i> SSL Certificate File</span></label>
         <input id="node-input-cert" type="text" placeholder="/path/on/server/to/certificate.crt">
     </div>
 </script>
@@ -60,6 +67,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         <dd>port number for server to listen on </dd>
         <dt>url <span class="property-type"> string</span><dt>
         <dd>url for server to listen on </dd>
+        <dt>protocol <span class="property-type"> string</span><dt>
+        <dd>protocol for the connection </dd>
         <dt>SSL private key file <span class="property-type">filename </span><dt>
         <dd>full path to SSL private key file on Node Red server</dd>
         <dt>SSl certificate file <span class="property-type">filename </span><dt>
@@ -139,8 +148,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             topic: {value:""},
             port: {value:"8081",required:true, validate: RED.validators.number()},
             url: {value:"/", required:true},
-            key: {value:"", requred:true},
-            cert: {value: "", required:true}
+            protocol: {value:"https", required:true},
+            key: {value:"" },
+            cert: {value:"" }
         },
         inputs:0,
         outputs:1,
@@ -154,6 +164,20 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         },
         labelStyle: function() {
             return this.name?"node_label_italic":"";
+        },
+        oneditprepare: function() {
+
+            $("#node-input-protocol").change(function() {
+                    var protocol = $("#node-input-protocol option:selected").val();
+                    if (protocol == "https") {
+                        $("#node-input-key, #node-input-cert, #node-input-label-cert, #node-input-label-key").show();
+                    } else {
+                        $("#node-input-key, #node-input-cert, #node-input-label-cert, #node-input-label-key").hide();
+                    }
+                });
+
+            $("#node-input-protocol").val(this.protocol);
+            $("#node-input-protocol").change();
         }
     });
 
