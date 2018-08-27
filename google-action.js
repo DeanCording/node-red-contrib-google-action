@@ -1,5 +1,5 @@
 /*****
-2.0
+
 node-red-contrib-google-action - A Node Red node to handle actions from Google Actions
 
 MIT License
@@ -27,114 +27,134 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 module.exports = function(RED) {
     "use strict";
 
-    const ActionsSdkApp = require('actions-on-google').ActionsSdkApp;
+    const {actionssdk} = require('actions-on-google');
 
     const express = require('express');
     const https = require("https");
+    const http = require("http");
     const fs = require('fs');
 
     const bodyParser = require('body-parser');
-
+    
     // Map of app handlers
-    // ActionsSdkApp can't be cloned so we need to keep a central copy.
+    // ActionsSdkConversation can't be cloned so we need to keep a central copy.
 
-    var appMap = new Map();
+    var convMap = new Map();
 
-    function GoogleActionIn(n) {
+    function GoogleActionHandler(n) {
         RED.nodes.createNode(this,n);
-
+        
         var node = this;
-
+        
         node.url = n.url || '/';
         node.port = n.port || 8081;
+        node.useSSL = n.useSSL || true;
         node.key = n.key || '';
         node.cert = n.cert || '';
 
-        const options = {
-            key: fs.readFileSync(node.key),
-            cert: fs.readFileSync(node.cert)
-        };
-
-                // Create new http server to listen for requests
+        node.app =  actionssdk({debug: true});
+        
+        // Create new http server to listen for requests
         var expressApp = express();
-        expressApp.use(bodyParser.json({ type: 'application/json' }));
-        node.httpServer = https.createServer(options, expressApp);
-
-        // Handler for requests
-        expressApp.all(node.url, (request, response) => {
-
-            var app = new ActionsSdkApp({ request, response });
-            app.handleRequest(function() {
-
-                appMap.set(app.getConversationId(), app);
-                var msg = {topic: node.topic,
-                            conversationId: app.getConversationId(),
-                            intent: app.getIntent(),
-                            dialogState: app.getDialogState(),
-                            closeConversation: true,
-                        };
-		    
-                var user = app.getUser();
-                msg.userId = (user ? user.userId : 0);
-                msg.locale = (user ? user.locale : "");
-
-                switch(msg.intent) {
-                    case 'actions.intent.OPTION':
-                        msg.payload = app.getSelectedOption();
-                        break;
-                    default:
-                        msg.payload = app.getRawInput();
-                }
-
-
-                node.send(msg);
-
-                node.trace("request: " + msg.payload);
-
-            });
-        });
+        expressApp.use(bodyParser.json({ type: 'application/json' }), node.app);
+        
+        if (node.useSSL) {
+            const options = {
+                key: fs.readFileSync(node.key),
+                cert: fs.readFileSync(node.cert)
+            };
+            node.httpServer = https.createServer(options, expressApp);
+        } else {
+            node.httpServer = http.createServer(expressApp);
+        }
 
         // Start listening
         node.httpServer.listen(node.port);
-
+       
         node.log("Listening on port " + node.port);
+        
+        this.subscribe = function(intent, handler) {
+            node.app.intent(intent, conv => handler(conv));
+        };
+        
 
         // Stop listening
         node.on('close', function(done) {
-            appMap.clear();
+            convMap.clear();
             node.httpServer.close(function(){
                 done();
             });
         });
 
     }
+    RED.nodes.registerType("google-handler",GoogleActionHandler);
+
+    function GoogleActionIn(n) {
+        RED.nodes.createNode(this,n);
+
+        var node = this;
+        
+        node.intent = n.intent;
+        node.topic = n.topic || n.intent;
+        
+        node.appServer = RED.nodes.getNode(n.handler);
+
+        if (node.appServer) {
+            if (node.intent) {
+                node.appServer.subscribe(node.intent, function(conv) {
+                    
+                    var msg = {topic: node.topic,
+                                intent: conv.intent,
+                                payload: conv.input.raw,
+                                conversationType: conv.input.type,
+                                conversationId: conv.id,
+                                dialogState: conv.data,
+                                _conv: conv
+                            };
+                        
+                    var user = conv.user;
+                    msg.userId = (user ? user._id : 0);
+                    msg.locale = (user ? user.locale : "");
+
+                    node.send(msg);
+
+                    node.trace("request: " + msg.payload);                   
+                });
+            }
+                
+        }
+    }
     RED.nodes.registerType("google-action in",GoogleActionIn);
+    
 
-
-    function GoogleActionOut(n) {
+    function GoogleActionAsk(n) {
         RED.nodes.createNode(this,n);
         var node = this;
 
         this.on("input",function(msg) {
 
-            var app = appMap.get(msg.conversationId);
-
-            if (app) {
-                if (msg.closeConversation) {
-                    app.tell(msg.payload.toString());
-                    appMap.delete(msg.conversationId);
-                } else {
-                    if (Array.isArray(msg.payload)) {
-                        app.ask(app.buildInputPrompt(msg.payload[0].startsWith("<speak>"), msg.payload[0],
-                                             msg.payload.slice(1,4)), msg.dialogState);
-                    } else {
-                        app.ask(msg.payload.toString(), msg.dialogState);
-                    }
-                }
+            if (msg._conv) {
+                msg._conv.ask(msg.payload.toString(), msg.dialogState);
             } else {
-                node.warn("Invalid conversation id");
+                node.warn("Missing conversation");
             }
         });
     }
-    RED.nodes.registerType("google-action response",GoogleActionOut);
-};
+    RED.nodes.registerType("google-action ask",GoogleActionAsk);
+    
+    function GoogleActionClose(n) {
+        RED.nodes.createNode(this,n);
+        var node = this;
+
+        this.on("input",function(msg) {
+
+            if (msg._conv) {
+                    msg._conv.close(msg.payload.toString());
+            } else {
+                node.warn("Missing conversation");
+            }
+        });
+    }
+    RED.nodes.registerType("google-action close",GoogleActionClose);
+    
+}; 

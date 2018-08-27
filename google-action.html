@@ -21,7 +21,137 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -->
 
+<script type="text/x-red" data-template-name="google-handler">
+    <div class="form-row">
+        <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-config-input-name" >
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-port"><i class="fa fa-plug"></i> Port</span></label>
+        <input id="node-config-input-port" type="text" placeholder="8081">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-url"><i class="fa fa-tag"></i> URL</span></label>
+        <input id="node-config-input-url" type="text" placeholder="/">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-useSSL"><i class="fa fa-lock"></i> Use SSL</span></label>
+        <input id="node-config-input-useSSL" type="checkbox">
+    </div>
+    <div class="form-row" id="key-row">
+        <label for="node-config-input-key"><i class="fa fa-tag"></i> SSL Private Key File</span></label>
+        <input id="node-config-input-key" type="text" placeholder="/path/on/server/to/private.key">
+    </div>
+    <div class="form-row" id="cert-row">
+        <label for="node-config-input-cert"><i class="fa fa-tag"></i> SSL Certificate File</span></label>
+        <input id="node-config-input-cert" type="text" placeholder="/path/on/server/to/certificate.crt">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="google-handler">
+    <p>Creates a server for handling requests from Google Actions.</p>
+    <h3>Properties</h3>
+    <dl class="message-properties">
+        <dt>name <span class="property-type">string </span><dt>
+        <dd>name of node displayed in editor </dd>
+        <dt>port <span class="property-type"> integer</span><dt>
+        <dd>port number for server to listen on </dd>
+        <dt>url <span class="property-type"> string</span><dt>
+        <dd>url for server to listen on </dd>
+        <dt>use SSL </dt>
+        <dd>Use SSL to encrypt requests and responses with Google</dd>
+        <dt>SSL private key file <span class="property-type">filename </span><dt>
+        <dd>full path to SSL private key file on Node Red server</dd>
+        <dt>SSl certificate file <span class="property-type">filename </span><dt>
+        <dd>full pathname to SSL certificate file on Node Red server</dd>
+    </dl>
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>conversationId<span class="property-type">string</span><dt>
+        <dd>A identifier for the conversation.  If the flow asks the user a question, the response will
+        have the same identifier.<dd>
+        <dt>intent<span class="property-type">string</span><dt>
+        <dd>Indicates the intent of the conversation with the user.</dd>
+        <dt>userId<span class="property-type">string</span></dt>
+        <dd>A unique identifier for the user. If the user is registered and recognised then the user id
+        is consistent across conversations.</dd>
+        <dt>locale<span class="property-type">string</span></dt>
+        <dd>Country and language code for the request</dd>
+        <dt>dialogState<span class="property-type">object</span></dt>
+        <dd>An object that can be used to store state information between turns of the conversation.</dd>
+        <dt>payload<span class="property-type">string</span></dt>
+        <dd>The raw text of the user's spoken or typed input.</dd>
+    </dl>
+    <h3>Details</h3>
+    <p>The node will listen for incoming action requests from Google Actions.</p>
+    <p>Google requires that all requests and responses are passed over SSL.  If you have 
+    ssl terminating reverse proxy, you can turn off the use of SSL and allow your proxy to
+    handle it.</p>
+    <p>The main intents for requests are:
+        <ul>
+        <li>actions.intent.MAIN - Default entry point at start of conversation</li>
+        <li>actions.intent.TEXT - A turn of the conversation</li>
+        <li>actions.intent.CANCEL - The user has terminated the conversation</li>
+        </ul>
+        See <a href="https://developers.google.com/actions/reference/rest/intents">Google Actions Reference</a> for more information.</p>
+    <p><b>Note:</b> this node does not send any response to the request. The flow
+       must include an Google Action Response node to complete the request.</p>
+</script>
+
+<script type="text/javascript">
+(function() {
+    RED.nodes.registerType('google-handler',{
+        category: 'config',
+        color:"rgb(131, 231, 174)",
+        defaults: {
+            name: {value:""},
+            port: {value:"8081",required:true, validate: RED.validators.number()},
+            url: {value:"/", required:true},
+            useSSL: {value:true},
+            key: {value:"", validate: function(v) {
+                    return !((v.length > 0) && $("node-config-input-useSSL").val());
+                }},
+            cert: {value: "", validate: function(v) {
+                    return !((v.length > 0) && $("node-config-input-useSSL").val());
+                }}
+        },
+       label: function() {
+            if (this.name) {
+                return this.name;
+            } else {
+                return "Action";
+            }
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        },
+        oneditprepare: function() {
+            
+            $("#node-config-input-useSSL").on('change',function() {
+                if ($("#node-config-input-useSSL").prop('checked')) {
+                    $("#key-row").show();
+                    $("#cert-row").show();
+                } else {
+                    $("#key-row").hide();
+                    $("#cert-row").hide();
+                }
+            });
+
+            if (this.useSSL === undefined) {
+                this.useSSL = true;
+                $("#node-config-input-useSSL").prop('checked', true);
+            }
+        }
+    });
+})();
+</script>
+
+
 <script type="text/x-red" data-template-name="google-action in">
+    <div class="form-row">
+        <label for="node-input-handler"><i class="fa fa-globe"></i> Handler</span></label>
+        <input type="text" id="node-input-handler">
+    </div>
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" >
@@ -31,39 +161,19 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         <input type="text" id="node-input-topic">
     </div>
     <div class="form-row">
-        <label for="node-input-port"><i class="fa fa-plug"></i> Port</span></label>
-        <input id="node-input-port" type="text" placeholder="8081">
-    </div>
-    <div class="form-row">
-        <label for="node-input-url"><i class="fa fa-tag"></i> URL</span></label>
-        <input id="node-input-url" type="text" placeholder="/">
-    </div>
-    <div class="form-row">
-        <label for="node-input-key"><i class="fa fa-tag"></i> SSL Private Key File</span></label>
-        <input id="node-input-key" type="text" placeholder="/path/on/server/to/private.key">
-    </div>
-    <div class="form-row">
-        <label for="node-input-cert"><i class="fa fa-tag"></i> SSL Certificate File</span></label>
-        <input id="node-input-cert" type="text" placeholder="/path/on/server/to/certificate.crt">
+        <label for="node-input-intent"><i class="fa fa-tag"></i> Intent</label>
+        <input type="text" id="node-input-intent">
     </div>
 </script>
 
 <script type="text/x-red" data-help-name="google-action in">
-    <p>Creates an end-point for receiving requests from Google Actions.</p>
+    <p>Creates a server for handling requests from Google Actions.</p>
     <h3>Properties</h3>
     <dl class="message-properties">
         <dt>name <span class="property-type">string </span><dt>
         <dd>name of node displayed in editor </dd>
-        <dt>topic <span class="property-type">string </span><dt>
-        <dd>topic applied to <code>msg</code> </dd>
-        <dt>port <span class="property-type"> integer</span><dt>
-        <dd>port number for server to listen on </dd>
-        <dt>url <span class="property-type"> string</span><dt>
-        <dd>url for server to listen on </dd>
-        <dt>SSL private key file <span class="property-type">filename </span><dt>
-        <dd>full path to SSL private key file on Node Red server</dd>
-        <dt>SSl certificate file <span class="property-type">filename </span><dt>
-        <dd>full pathname to SSL certificate file on Node Red server</dd>
+        <dt>intent <span class="property-type">string </span><dt>
+        <dd>Action intent or Dialogflow thing to subscribe to</dd>
     </dl>
     <h3>Outputs</h3>
     <dl class="message-properties">
@@ -92,10 +202,14 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         </ul>
         See <a href="https://developers.google.com/actions/reference/rest/intents">Google Actions Reference</a> for more information.</p>
     <p><b>Note:</b> this node does not send any response to the request. The flow
-       must include an Google Action Response node to complete the request.</p>
+       must include an Google Action Ask or Close node to complete the request.</p>
 </script>
 
-<script type="text/x-red" data-template-name="google-action response">
+<script type="text/x-red" data-template-name="google-action ask">
+    <div class="form-row">
+        <label for="node-input-handler"><i class="fa fa-globe"></i> Handler</span></label>
+        <input type="text" id="node-input-handler">
+    </div>
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name">
@@ -103,7 +217,46 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     <div class="form-tips">The messages sent to this node must originate from a Google Action input node.</span></div>
 </script>
 
-<script type="text/x-red" data-help-name="google-action response">
+<script type="text/x-red" data-help-name="google-action ask">
+    <p>Sends responses back to requests received from a Google Action input node.</p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>conversationId<span class="property-type">string</span><dt>
+        <dd>A identifier for the conversation that this is a response for.  If the flow asks the user a question, the response will have the same identifier.<dd>
+        <dt>dialogState<span class="property-type">object</span></dt>
+        <dd>An object that can be used to store state information between turns of the conversation.</dd>
+        <dt>payload <span class="property-type">string|array</span></dt>
+        <dd>The text of the response to be returned.</dd>
+        <dt>closeConversation<span class="property-type">boolean</span></dt>
+        <dd>If true, the converation will be terminated after this response. Otherwise the conversation will remain active and wait for further input from the user.</dd>
+    </dl>
+    <h3>Details</h3>
+    <p>Returns a response to an action request received from a Google Action Input node.</p>
+
+    <p>The response can be in plain text or marked up using
+    <a href="https://developers.google.com/actions/reference/ssml">SSML</a> for additional control of speech
+    output.  An array of up to four messages can be provided if you are asking the user for input.  The
+    first message is used as the prompt to the user for input.  The second and third messages are used as
+    follow up prompts if no input is received.  The fourth message is used to terminate the conversation.
+    If less than four messages are provided, default messages will be used.</p>
+
+</script>
+
+
+<script type="text/x-red" data-template-name="google-action close">
+    <div class="form-row">
+        <label for="node-input-handler"><i class="fa fa-globe"></i> Handler</span></label>
+        <input type="text" id="node-input-handler">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name">
+    </div>
+    <div class="form-tips">The messages sent to this node must originate from a Google Action input node.</span></div>
+</script>
+
+<script type="text/x-red" data-help-name="google-action close">
     <p>Sends responses back to requests received from a Google Action input node.</p>
 
     <h3>Inputs</h3>
@@ -136,11 +289,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         color:"rgb(131, 231, 174)",
         defaults: {
             name: {value:""},
-            topic: {value:""},
-            port: {value:"8081",required:true, validate: RED.validators.number()},
-            url: {value:"/", required:true},
-            key: {value:"", requred:true},
-            cert: {value: "", required:true}
+            topic: {value: ""},
+            intent: {value:"", required: true},
+            handler: {type:"google-handler", required: true}
         },
         inputs:0,
         outputs:1,
@@ -157,11 +308,35 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         }
     });
 
-    RED.nodes.registerType('google-action response',{
+    RED.nodes.registerType('google-action ask',{
         category: 'output',
         color:"rgb(131, 231, 174)",
         defaults: {
-            name: {value:""}
+            name: {value:""},
+            handler: {type:"google-handler", required: true}
+        },
+        inputs:1,
+        outputs:1,
+        align: "center",
+        icon: "bridge.png",
+        label: function() {
+            if (this.name) {
+                return this.name;
+            } else {
+                return "Ask";
+            }
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        }
+    });
+    
+    RED.nodes.registerType('google-action close',{
+        category: 'output',
+        color:"rgb(131, 231, 174)",
+        defaults: {
+            name: {value:""},
+            handler: {type:"google-handler", required: true}
         },
         inputs:1,
         outputs:0,
@@ -171,7 +346,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             if (this.name) {
                 return this.name;
             } else {
-                return "Response";
+                return "Close";
             }
         },
         labelStyle: function() {

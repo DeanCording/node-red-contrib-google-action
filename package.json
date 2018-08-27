@@ -3,7 +3,7 @@
   "version": "1.2.1",
   "description": "A node-red node for interfacing with actions from Google Assistant.",
   "dependencies": {
-    "actions-on-google": "^2.1.0",
+    "actions-on-google": "^2.3.0",
     "body-parser": "^1.18.3",
     "express": "^4.16.3"
   },
@@ -30,5 +30,10 @@
     "nodes": {
       "google-action": "google-action.js"
     }
+  },
+  "jshintConfig": {
+    "trailing": true,
+    "unused": true,
+    "esversion": 6
   }
 }
