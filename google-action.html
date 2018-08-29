@@ -39,10 +39,14 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         <input id="node-input-url" type="text" placeholder="/">
     </div>
     <div class="form-row">
+        <label for="node-input-useSSL"><i class="fa fa-lock"></i> Use SSL</span></label>
+        <input id="node-input-useSSL" type="checkbox">
+    </div>
+    <div class="form-row" id="key-row">
         <label for="node-input-key"><i class="fa fa-tag"></i> SSL Private Key File</span></label>
         <input id="node-input-key" type="text" placeholder="/path/on/server/to/private.key">
     </div>
-    <div class="form-row">
+    <div class="form-row" id="cert-row">
         <label for="node-input-cert"><i class="fa fa-tag"></i> SSL Certificate File</span></label>
         <input id="node-input-cert" type="text" placeholder="/path/on/server/to/certificate.crt">
     </div>
@@ -60,6 +64,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         <dd>port number for server to listen on </dd>
         <dt>url <span class="property-type"> string</span><dt>
         <dd>url for server to listen on </dd>
+        <dt>use SSL </dt>
+        <dd>Use SSL to encrypt requests and responses with Google</dd>
         <dt>SSL private key file <span class="property-type">filename </span><dt>
         <dd>full path to SSL private key file on Node Red server</dd>
         <dt>SSl certificate file <span class="property-type">filename </span><dt>
@@ -84,6 +90,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     </dl>
     <h3>Details</h3>
     <p>The node will listen for incoming action requests from Google Actions.</p>
+    <p>Google requires that all requests and responses are passed over SSL.  If you have 
+    ssl terminating reverse proxy, you can turn off the use of SSL and allow your proxy to
+    handle it.</p>
     <p>The main intents for requests are:
         <ul>
         <li>actions.intent.MAIN - Default entry point at start of conversation</li>
@@ -139,8 +148,13 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             topic: {value:""},
             port: {value:"8081",required:true, validate: RED.validators.number()},
             url: {value:"/", required:true},
-            key: {value:"", requred:true},
-            cert: {value: "", required:true}
+            useSSL: {value:true},
+            key: {value:"", validate: function(v) {
+                    return !((v.length > 0) && $("node-input-useSSL").val());
+                }},
+            cert: {value: "", validate: function(v) {
+                    return !((v.length > 0) && $("node-input-useSSL").val());
+                }}
         },
         inputs:0,
         outputs:1,
@@ -154,7 +168,23 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         },
         labelStyle: function() {
             return this.name?"node_label_italic":"";
-        }
+        },
+        oneditprepare: function() {
+            
+            $("#node-input-useSSL").on('change',function() {
+                if ($("#node-input-useSSL").prop('checked')) {
+                    $("#key-row").show();
+                    $("#cert-row").show();
+                } else {
+                    $("#key-row").hide();
+                    $("#cert-row").hide();
+                }
+            });
+            if (this.useSSL === undefined) {
+                this.useSSL = true;
+                $("#node-input-useSSL").prop('checked', true);
+            }
+        }        
     });
 
     RED.nodes.registerType('google-action response',{

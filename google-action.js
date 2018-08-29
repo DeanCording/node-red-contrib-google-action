@@ -27,71 +27,79 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 module.exports = function(RED) {
     "use strict";
 
-    const ActionsSdkApp = require('actions-on-google').ActionsSdkApp;
-
     const express = require('express');
     const https = require("https");
     const fs = require('fs');
 
     const bodyParser = require('body-parser');
 
-    // Map of app handlers
-    // ActionsSdkApp can't be cloned so we need to keep a central copy.
+    // Map of response handlers
+    // Express response objects can't be cloned so we need to keep a central copy.
 
-    var appMap = new Map();
-
+    var convMap = new Map();
+    
     function GoogleActionIn(n) {
         RED.nodes.createNode(this,n);
 
         var node = this;
-
+        
         node.url = n.url || '/';
         node.port = n.port || 8081;
+        node.useSSL = n.useSSL || true;
         node.key = n.key || '';
         node.cert = n.cert || '';
 
-        const options = {
-            key: fs.readFileSync(node.key),
-            cert: fs.readFileSync(node.cert)
-        };
 
-                // Create new http server to listen for requests
+        // Create new http server to listen for requests
         var expressApp = express();
         expressApp.use(bodyParser.json({ type: 'application/json' }));
-        node.httpServer = https.createServer(options, expressApp);
+
+        if (node.useSSL) {
+            const options = {
+                key: fs.readFileSync(node.key),
+                cert: fs.readFileSync(node.cert)
+            };
+            node.httpServer = https.createServer(options, expressApp);
+        } else {
+            node.httpServer = http.createServer(expressApp);
+        }
+            
 
         // Handler for requests
-        expressApp.all(node.url, (request, response) => {
+        expressApp.all(node.url, (request, responseHandler) => {
 
-            var app = new ActionsSdkApp({ request, response });
-            app.handleRequest(function() {
+            convMap.set(request.body.conversation.conversationId, responseHandler);
 
-                appMap.set(app.getConversationId(), app);
-                var msg = {topic: node.topic,
-                            conversationId: app.getConversationId(),
-                            intent: app.getIntent(),
-                            dialogState: app.getDialogState(),
-                            closeConversation: true,
-                        };
-		    
-                var user = app.getUser();
-                msg.userId = (user ? user.userId : 0);
-                msg.locale = (user ? user.locale : "");
+            var msg = {topic: request.body.inputs[0].intent,
+                       conversationId: request.body.conversation.conversationId,
+                       dialogState: request.body.conversation.conversationToken ?       JSON.parse(request.body.conversation.conversationToken) : {},
+                       expectUserResponse: false,
+                       userId: request.body.user.idToken || request.body.user.userId  || undefined,
+                       locale: request.body.user.locale,
+                       request: request.body
+            };
+                
+            if (request.body.inputs[0].arguments == undefined) {
+                
+                msg.payload = request.body.inputs[0].rawInputs[0].query;
+                
+            } else {
+                    
+                msg.payload = request.body.inputs[0].arguments[0].intValue ||
+                            request.body.inputs[0].arguments[0].floatValue ||
+                            request.body.inputs[0].arguments[0].boolValue ||
+                            request.body.inputs[0].arguments[0].datetimeValue ||
+                            request.body.inputs[0].arguments[0].placeValue ||
+                            request.body.inputs[0].arguments[0].extension ||
+                            request.body.inputs[0].arguments[0].structuredValue ||
+                            request.body.inputs[0].arguments[0].textValue ||
+                            "";
+            }
 
-                switch(msg.intent) {
-                    case 'actions.intent.OPTION':
-                        msg.payload = app.getSelectedOption();
-                        break;
-                    default:
-                        msg.payload = app.getRawInput();
-                }
+            node.send(msg);
 
+            node.trace("request: " + msg.payload);
 
-                node.send(msg);
-
-                node.trace("request: " + msg.payload);
-
-            });
         });
 
         // Start listening
@@ -101,7 +109,6 @@ module.exports = function(RED) {
 
         // Stop listening
         node.on('close', function(done) {
-            appMap.clear();
             node.httpServer.close(function(){
                 done();
             });
@@ -117,20 +124,37 @@ module.exports = function(RED) {
 
         this.on("input",function(msg) {
 
-            var app = appMap.get(msg.conversationId);
+            var responseHandler = convMap.get(msg.conversationId);
 
-            if (app) {
-                if (msg.closeConversation) {
-                    app.tell(msg.payload.toString());
-                    appMap.delete(msg.conversationId);
-                } else {
+            if (responseHandler) {
+                
+                
+                var response = msg.response || {isInSandbox: msg.request.isInSandbox || {isInSandbox: true}};
+                
+                response.expectUserResponse = response.expectUserResponse || msg.expectUserResponse || false;
+                response.conversationToken = JSON.stringify(msg.dialogState);
+                                              
+                if (msg.expectUserResponse) {
                     if (Array.isArray(msg.payload)) {
-                        app.ask(app.buildInputPrompt(msg.payload[0].startsWith("<speak>"), msg.payload[0],
-                                             msg.payload.slice(1,4)), msg.dialogState);
+//                        app.ask(app.buildInputPrompt(msg.payload[0].startsWith("<speak>"), msg.payload[0],
+//                                             msg.payload.slice(1,4)), msg.dialogState);
                     } else {
-                        app.ask(msg.payload.toString(), msg.dialogState);
+                        response.expectedInputs = [{inputPrompt: {richInitialPrompt: {items: [{simpleResponse: {textToSpeech: msg.payload}}],
+                          suggestions: [{ title: "Option 1a"}, {title: "Option 2a"} , {title: "Option 3a"}]
+                        }},
+                           possibleIntents: [{intent: "actions.intent.OPTION",
+                               inputValueData: { "@type": "type.googleapis.com/google.actions.v2.OptionValueSpec", simpleSelect: {items: [
+                                    {optionInfo: {key: "Option 1"}, title: "Option 1"},
+                                    {optionInfo: {key: "Option 2"}, title: "Option 2"},
+                                    {optionInfo: {key: "Option 3"}, title: "Option 3"}] }}}]
+                          
+                        }];
                     }
+                } else {
+                    response.finalResponse = {richResponse: {items: [{simpleResponse: {textToSpeech: msg.payload}}]}};
                 }
+                responseHandler.json(response);
+                convMap.delete(msg.conversationId);
             } else {
                 node.warn("Invalid conversation id");
             }
