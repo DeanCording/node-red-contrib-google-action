@@ -21,9 +21,12 @@
       "name": "nodeRedApp",
       "url": "https://your.server.address:8081/",
       "fulfillmentApiVersion": 2,
-      "in_dialog_intents": [
+      "inDialogIntents": [
         {
           "name": "actions.intent.CANCEL"
+        },
+        {
+          "name": "actions.intent.NO_INPUT"
         }
       ]
     }

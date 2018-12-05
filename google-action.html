@@ -21,14 +21,12 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -->
 
-<script type="text/x-red" data-template-name="google-action in">
+<-- Google Action In -->
+
+<script type="text/x-red" data-template-name="action start">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" >
-    </div>
-    <div class="form-row">
-        <label for="node-input-topic"><i class="fa fa-tag"></i> Topic</label>
-        <input type="text" id="node-input-topic">
     </div>
     <div class="form-row">
         <label for="node-input-port"><i class="fa fa-plug"></i> Port</span></label>
@@ -52,31 +50,29 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     </div>
 </script>
 
-<script type="text/x-red" data-help-name="google-action in">
+<script type="text/x-red" data-help-name="action start">
     <p>Creates an end-point for receiving requests from Google Actions.</p>
     <h3>Properties</h3>
     <dl class="message-properties">
-        <dt>name <span class="property-type">string </span><dt>
-        <dd>name of node displayed in editor </dd>
-        <dt>topic <span class="property-type">string </span><dt>
-        <dd>topic applied to <code>msg</code> </dd>
-        <dt>port <span class="property-type"> integer</span><dt>
-        <dd>port number for server to listen on </dd>
-        <dt>url <span class="property-type"> string</span><dt>
-        <dd>url for server to listen on </dd>
+        <dt>name <span class="property-type">string </span></dt>
+        <dd>Name of node displayed in editor </dd>
+        <dt>port <span class="property-type"> integer</span></dt>
+        <dd>Port number for server to listen on </dd>
+        <dt>url <span class="property-type"> string</span></dt>
+        <dd>URL for server to listen on </dd>
         <dt>use SSL </dt>
         <dd>Use SSL to encrypt requests and responses with Google</dd>
-        <dt>SSL private key file <span class="property-type">filename </span><dt>
-        <dd>full path to SSL private key file on Node Red server</dd>
-        <dt>SSl certificate file <span class="property-type">filename </span><dt>
-        <dd>full pathname to SSL certificate file on Node Red server</dd>
+        <dt>SSL private key file <span class="property-type">filename </span></dt>
+        <dd>Full path to SSL private key file on Node Red server</dd>
+        <dt>SSl certificate file <span class="property-type">filename </span></dt>
+        <dd>Full pathname to SSL certificate file on Node Red server</dd>
     </dl>
     <h3>Outputs</h3>
     <dl class="message-properties">
-        <dt>conversationId<span class="property-type">string</span><dt>
+        <dt>conversationId<span class="property-type">string</span></dt>
         <dd>A identifier for the conversation.  If the flow asks the user a question, the response will
-        have the same identifier.<dd>
-        <dt>intent<span class="property-type">string</span><dt>
+        have the same identifier.</dd>
+        <dt>topic<span class="property-type">string</span></dt>
         <dd>Indicates the intent of the conversation with the user.</dd>
         <dt>userId<span class="property-type">string</span></dt>
         <dd>A unique identifier for the user. If the user is registered and recognised then the user id
@@ -97,51 +93,19 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         <ul>
         <li>actions.intent.MAIN - Default entry point at start of conversation</li>
         <li>actions.intent.TEXT - A turn of the conversation</li>
+        <li>actions.intent.OPTION - A turn of the conversation</li>
         <li>actions.intent.CANCEL - The user has terminated the conversation</li>
         </ul>
         See <a href="https://developers.google.com/actions/reference/rest/intents">Google Actions Reference</a> for more information.</p>
-    <p><b>Note:</b> this node does not send any response to the request. The flow
-       must include an Google Action Response node to complete the request.</p>
-</script>
-
-<script type="text/x-red" data-template-name="google-action response">
-    <div class="form-row">
-        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-        <input type="text" id="node-input-name">
-    </div>
-    <div class="form-tips">The messages sent to this node must originate from a Google Action input node.</span></div>
-</script>
-
-<script type="text/x-red" data-help-name="google-action response">
-    <p>Sends responses back to requests received from a Google Action input node.</p>
-
-    <h3>Inputs</h3>
-    <dl class="message-properties">
-        <dt>conversationId<span class="property-type">string</span><dt>
-        <dd>A identifier for the conversation that this is a response for.  If the flow asks the user a question, the response will have the same identifier.<dd>
-        <dt>dialogState<span class="property-type">object</span></dt>
-        <dd>An object that can be used to store state information between turns of the conversation.</dd>
-        <dt>payload <span class="property-type">string|array</span></dt>
-        <dd>The text of the response to be returned.</dd>
-        <dt>closeConversation<span class="property-type">boolean</span></dt>
-        <dd>If true, the converation will be terminated after this response. Otherwise the conversation will remain active and wait for further input from the user.</dd>
-    </dl>
-    <h3>Details</h3>
-    <p>Returns a response to an action request received from a Google Action Input node.</p>
-
-    <p>The response can be in plain text or marked up using
-    <a href="https://developers.google.com/actions/reference/ssml">SSML</a> for additional control of speech
-    output.  An array of up to four messages can be provided if you are asking the user for input.  The
-    first message is used as the prompt to the user for input.  The second and third messages are used as
-    follow up prompts if no input is received.  The fourth message is used to terminate the conversation.
-    If less than four messages are provided, default messages will be used.</p>
-
+    <p><b>Note:</b> this node does not send any response to the request. The flow can include
+        any number of Google Action Ask nodes and
+       must terminate with a Google Action Tell node to complete the conversation.</p>
 </script>
 
 <script type="text/javascript">
 (function() {
-    RED.nodes.registerType('google-action in',{
-        category: 'input',
+    RED.nodes.registerType('action start',{
+        category: 'google',
         color:"rgb(131, 231, 174)",
         defaults: {
             name: {value:""},
@@ -158,17 +122,18 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         },
         inputs:0,
         outputs:1,
-        icon: "bridge.png",
+        icon: "inject.png",
         label: function() {
             if (this.name) {
                 return this.name;
             } else {
-                return "Action";
+                return "Start";
             }
         },
         labelStyle: function() {
             return this.name?"node_label_italic":"";
         },
+        outputLabels: ["response"],
         oneditprepare: function() {
             
             $("#node-input-useSSL").on('change',function() {
@@ -186,27 +151,472 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             }
         }        
     });
+})();
+</script>
 
-    RED.nodes.registerType('google-action response',{
-        category: 'output',
+<!-- Google Action Ask -->
+    
+<script type="text/x-red" data-template-name="action ask">
+    <div class="form-row ask-all">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name">
+    </div>
+    <div class="form-row ask-all">
+        <label for="node-input-answerType"><i class="fa fa-tag"></i> Type</label>
+        <select id="node-input-answerType">
+            <option value="simple">Simple</option>
+            <option value="simple-select">Simple Select</option>
+            <option value="list-select">List Select</option>
+            <option value="carousel-select">Carousel Select</option>
+            <option value="datetime">Date and Time</option>
+            <option value="boolean">Confirmation</option>
+            <option value="place">Address</option>
+            <option value="nameLocation">Name and Location</option>
+            <option value="property">Property</option>
+        </select>
+    </div>
+    <div class="form-row ask-simple ask-place ask-boolean ask-datetime ask-nameLocation ask-simple-select ask-list-select ask-carousel-select">
+        <label for="node-input-prompt1"><i class="fa fa-question"></i>
+            <span id="prompt1-label"> Prompt</span></label>
+        <input type="text" id="node-input-prompt1" placeholder="Prompt">
+        <input type="hidden" id="node-input-prompt1Type">
+    </div>
+    <div class="form-row ask-place ask-datetime">
+        <label for="node-input-prompt2"><i class="fa fa-question"></i>
+            <span id="prompt2-label"> Prompt</span>
+        </label>
+        <input type="text" id="node-input-prompt2">
+        <input type="hidden" id="node-input-prompt2Type">
+    </div>
+    <div class="form-row ask-datetime">
+        <label for="node-input-prompt3"><i class="fa fa-question"></i>
+            <span id="prompt3-label"> Prompt</span>
+        </label>
+        <input type="text" id="node-input-prompt3">
+        <input type="hidden" id="node-input-prompt3Type">
+    </div>
+    
+    <div class="form-row ask-simple-select ask-list-select ask-carousel-select">
+        <label for="node-input-optionsSource"><i class="fa fa-list"></i> Options</label>
+        <select id="node-input-optionsSource">
+            <option value="static">Static</option>
+            <option value="property">Property</option>
+        </select>
+    </div>
+    <div class="form-row ask-options-property">
+        <label for="node-input-optionsProperty"> </label>
+        <input type="text" id="node-input-optionsProperty">
+        <input type="hidden" id="node-input-optionsPropertyType">
+    </div>
+    <div class="form-row  ask-options-static">
+        <ol id="node-input-option-container"></ol>
+    </div>
+    <div class="form-row ask-simple">
+        <label for="node-input-suggestions"><i class="fa fa-question"></i> Suggestions</label>
+        <input type="text" id="node-input-suggestions">
+        <input type="hidden" id="node-input-suggestionsType">
+    </div>
+    
+    <div class="form-row ask-simple" style="margin-bottom: 0">
+        <label for="noInputPrompt1" style="margin-bottom: 0"><i class="fa fa-question"></i> No Input Prompts</label>
+        <input type="text" id="noInputPrompt1" style="vertical-align: top">
+    </div>
+    <div class="form-row ask-simple" style="margin-bottom: 6px">
+        <label for="noInputPrompt2"></label>
+        <input type="text" id="noInputPrompt2">
+    </div>
+    <div class="form-row response-property">
+        <label for="node-input-property"><i class="fa fa-question"></i> Response Property</label>
+        <input type="text" id="node-input-property" placeholder="payload">
+        <input type="hidden" id="node-input-propertyType">
+    </div>
+    <div class="form-tips">The messages sent to this node must originate from a Google Action start node.</span></div>
+</script>
+
+<script type="text/x-red" data-help-name="action ask">
+    <p>Prompts the user for input for a Google Action.</p>
+    <h3>Properties</h3>
+    <dl class="message-properties">
+        <dt>name <span class="property-type">string </span></dt>
+        <dd>Name of node displayed in editor </dd>
+        <dt>type <span class="property-type">option </span></dt>
+        <dd>Type of prompt to be sent</dd>
+        <dt>prompt <span class="property-type">string </span></dt>
+        <dd>Prompt to be sent</dd>
+        <dt>suggestions <span class="property-type">string | array </span></dt>
+        <dd>List of suggested responses</dd>
+        <dt>no input prompts <span class="property-type">string </span></dt>
+        <dd>Prompts to be used if input times out</dd>
+        <dt>context <span class="property-type">string </span></dt>
+        <dd>Reason for asking question</dd>
+        <dt>options <span class="property-type">option </span></dt>
+        <dd>Selection options</dd>
+    </dl>
+
+    <h3>Inputs</h3>
+    <span class="message-properties">
+        Input message must originate from a Google Action Start node.
+    </span>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>topic <span class="property-type">string </span></dt>
+        <dd>The intent of the response </dd>
+        <dt>conversationId <span class="property-type">string </span></dt>
+        <dd>A unique identifier for this conversation </dd>
+        <dt>dialogState <span class="property-type">object </span></dt>
+        <dd>State information for the conversation </dd>
+        <dt>userId <span class="property-type">string </span></dt>
+        <dd>Unique identifier for the user </dd>
+        <dt>locale <span class="property-type">string </span></dt>
+        <dd>Locale of the conversation language </dd>
+        <dt>request <span class="property-type">object </span></dt>
+        <dd>Raw request object received from Google </dd>
+        <dt>payload <span class="property-type">string | object </span></dt>
+        <dd>Response received from user</dd>
+    </dl>
+
+    <p>User response is sent to the first output.</p>
+
+    <p>If the user cancels the conversation or fails to respond, the response is sent to the second output.</p>
+
+    <h3>Details</h3>
+    <p>Prompts the user for input and outputs the response.</p>
+
+    <p>The <code>type</code> of prompt can be:</p>
+    <dl>
+        <dt>Simple</dt><dd>A simple prompt with optional suggestions</dd>
+        <dt>Simple Selection</dt><dd>Selection from a list of options</dd>
+        <dt>List Select</dt>
+        <dt>Date and Time</dt><dd>Ask for a date and time</dd>
+        <dt>Confirmation</dt><dd>Yes / No answer</dd>
+        <dt>Address</dt><dd>Ask for a physical address</dd>
+        <dt>Name and Location</dt><dd>Ask for user's name and location</dd>
+        <dt>Property</dt><dd>Use a response object passed in from a property</dd>
+    </dl>
+
+    <p>The response can be in plain text or marked up using
+    <a href="https://developers.google.com/actions/reference/ssml">SSML</a> for additional control of speech
+    output.  </p>
+
+</script>
+
+<script type="text/javascript">
+(function() {
+    RED.nodes.registerType('action ask',{
+        category: 'google',
         color:"rgb(131, 231, 174)",
         defaults: {
-            name: {value:""}
+            name: {value:""},
+            answerType: {value: "simple"},
+            prompt1: {value: "payload", required: true},
+            prompt1Type: {value:"msg"},
+            prompt2: {value: "So I can help you", validate: function(v) {
+                    return ((v.length > 0) || $("node-input-answerType").val() != "place");
+                }},
+            prompt2Type: {value:"str"},
+            prompt3: {value: "So I can help you", validate: function(v) {
+                    return ((v.length > 0) || $("node-input-answerType").val() != "place");
+                }},
+            prompt3Type: {value:"str"},
+            suggestions: {value: ""},
+            suggestionsType: {value: "str"},
+            optionsSource: {value: "static"},
+            optionsStatic: {value: []},
+            optionsProperty: {value: "options", validate: function(v) {
+                    return ((v.length > 0) || $("node-input-optionsSource").val() != "property");
+                    }},
+            optionsPropertyType: {value: "msg"},        
+            noInputPrompts: {value:[]},
+            property: {value: "payload", validate: function(v) {
+                    return ((v.length > 0) || $("node-input-answerType").val() != "property");
+                    }},
+            propertyType: {value:"msg"}
         },
         inputs:1,
-        outputs:0,
-        align: "right",
-        icon: "bridge.png",
+        outputs:2,
+        align: "left",
+        icon: "sort.png",
         label: function() {
             if (this.name) {
                 return this.name;
             } else {
-                return "Response";
+                return "Ask";
             }
         },
         labelStyle: function() {
             return this.name?"node_label_italic":"";
+        },
+        outputLabels: ["response", "cancel"],
+        oneditprepare:  function() {
+            if (!this.promptType) {
+                this.promptType = 'msg';
+            }
+            $("#node-input-prompt1").typedInput({
+                default: 'msg',
+                types: ['msg','flow','global','str', 'jsonata'],
+                typeField: $("#node-input-prompt1Type")
+            });
+
+            $("#node-input-prompt2").typedInput({
+                default: 'str',
+                types: ['msg','flow','global','str', 'jsonata'],
+                typeField: $("#node-input-prompt2Type")
+            });
+
+            $("#node-input-prompt3").typedInput({
+                default: 'str',
+                types: ['msg','flow','global','str', 'jsonata'],
+                typeField: $("#node-input-prompt3Type")
+            });
+
+            $("#node-input-suggestions").typedInput({
+                default: 'str',
+                types: ['msg','flow','global','str', 'jsonata'],
+                typeField: $("#node-input-suggestionsType")
+            });
+
+            $("#node-input-property").typedInput({
+                default: 'msg',
+                types: ['msg','flow','global','str', 'jsonata'],
+                typeField: $("#node-input-propertyType")
+            });
+         
+            $("#node-input-answerType").on('change', function() {
+                 switch ($(this).val()) {
+                    case 'simple':
+                        $(".form-row:not(.ask-all)").hide();
+                        $(".ask-simple").show();
+                        break;
+                        
+                    case 'simple-select':
+                        $(".form-row:not(.ask-all)").hide();
+                        $(".ask-simple-select").show();
+                        switch($("#node-input-optionsSource").val()) {
+                            case 'static':
+                                $(".ask-options-property").hide();
+                                $(".ask-options-static").show();
+                                break;
+                            case 'property':
+                                $(".ask-options-property").show();
+                                $(".ask-options-static").hide();
+                                break;
+                        }
+                        break;
+
+                    case 'list-select':
+                        $(".form-row:not(.ask-all)").hide();
+                        $(".ask-list-select").show();
+                        switch($("#node-input-optionsSource").val()) {
+                            case 'static':
+                                $(".ask-options-property").hide();
+                                $(".ask-options-static").show();
+                                break;
+                            case 'property':
+                                $(".ask-options-property").show();
+                                $(".ask-options-static").hide();
+                                break;
+                        }
+                        break;
+                        
+                    case 'carousel-select':
+                        $(".form-row:not(.ask-all)").hide();
+                        $(".ask-carousel-select").show();
+                        switch($("#node-input-optionsSource").val()) {
+                            case 'static':
+                                $(".ask-options-property").hide();
+                                $(".ask-options-static").show();
+                                break;
+                            case 'property':
+                                $(".ask-options-property").show();
+                                $(".ask-options-static").hide();
+                                break;
+                        }
+                        break; 
+                        
+                    case 'place':
+                        $(".form-row:not(.ask-all)").hide();
+                        $(".ask-place").show();
+                        $("#prompt2-label").text(" Context");
+                        break;
+                        
+                    case 'boolean':
+                        $(".form-row:not(.ask-all)").hide();
+                        $(".ask-boolean").show();
+                        break;
+
+                    case 'datetime':
+                        $(".form-row:not(.ask-all)").hide();
+                        $(".ask-datetime").show();
+                        $("#prompt2-label").text(" Date Prompt");
+                        $("#prompt3-label").text(" Time Prompt");
+                        break;
+                        
+                    case 'nameLocation':
+                        $(".form-row:not(.ask-all)").hide();
+                        $(".ask-nameLocation").show();
+                        break;
+                        
+                    case 'property':
+                        $(".form-row:not(.ask-all)").hide();
+                        $(".response-property").show();
+                        break;
+                    
+                    }
+            });
+            
+            $("#node-input-optionsSource").on('change', function() {
+                var answerType = $("#node-input-answerType").val();
+                if ((answerType == 'simple-select') ||
+                    (answerType == 'list-select') ||
+                    (answerType == 'carousel-select')) {
+                    switch($(this).val()) {
+                        case 'static':
+                            $(".ask-options-property").hide();
+                            $(".ask-options-static").show();
+                            break;
+                        case 'property':
+                            $(".ask-options-property").show();
+                            $(".ask-options-static").hide();
+                            break;
+                    }
+                }
+            });
+                    
+                        
+
+            $("#node-input-optionsProperty").typedInput({
+                default: 'msg',
+                types: ['msg','flow','global', 'jsonata'],
+                typeField: $("#node-input-optionsPropertyType")
+            });
+            
+
+            $("#node-input-option-container").css('min-height','250px')
+                    .css('min-width','450px').editableList({
+                addItem: function(container, i, data) {
+                
+                    var row1 = $('<div/>',{style:"padding-top: 5px; padding-left: 5px;"}).appendTo(container);
+                    
+                    row1.append($("<label/>").text("Key"));
+                    row1.append($("<input/>", {type:"text", class: "option-key"}));
+                    
+                    var row2 = $('<div/>',{style:"padding-top: 5px; padding-left: 5px;"}).appendTo(container);
+
+                    row2.append($("<label/>").text("Title"));
+                    row2.append($("<input/>", {type:"text", class: "option-title"}));
+ 
+                    var row3 = $('<div/>',{style:"padding-top: 5px; padding-left: 5px;"}).appendTo(container);
+                    row3.append($("<label/>").text("Synonyms"));
+                    row3.append($("<textarea/>", {style: "width: 70%", rows: 2, wrap:"soft", class: "option-synonyms"}));
+ 
+                    
+                },
+                sortable: true,
+                removable: true,
+                addButton: "add option"
+            });
+            
+            for (var i=0;i<this.optionsStatic.length;i++) {
+                var rule = this.optionsStatic[i];
+                $("#node-input-option-container").editableList('addItem',{data:option,i:i});
+            }
+
+
+            $("#noInputPrompt1").val(this.noInputPrompts[0]);
+            $("#noInputPrompt2").val(this.noInputPrompts[1]);
+        },
+        oneditsave: function() {
+            var prompts = [];
+            prompts.push($("#noInputPrompt1").val());
+            prompts.push($("#noInputPrompt2").val());
+            
+            this.noInputPrompts = prompts.filter(prompt => prompt.length > 0); 
         }
     });
+})();
+</script>
+
+<!-- Google Action Tell -->
+
+<script type="text/x-red" data-template-name="action tell">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-tell"><i class="fa fa-comment"></i> Tell</label>
+        <input type="text" id="node-input-tell">
+        <input type="hidden" id="node-input-tellType">
+    </div>
+    <div class="form-tips">The messages sent to this node must originate from a Google Action input node.</span></div>
+</script>
+
+<script type="text/x-red" data-help-name="action tell">
+    <p>Sends responses back to requests received from a Google Action Start node.</p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>conversationId<span class="property-type">string</span><dt>
+        <dd>A identifier for the conversation that this is a response for.  If the flow asks the user a question, the response will have the same identifier.<dd>
+        <dt>dialogState<span class="property-type">object</span></dt>
+        <dd>An object that can be used to store state information between turns of the conversation.</dd>
+        <dt>payload <span class="property-type">string|array</span></dt>
+        <dd>The text of the response to be returned.</dd>
+        <dt>closeConversation<span class="property-type">boolean</span></dt>
+        <dd>If true, the converation will be terminated after this response. Otherwise the conversation will remain active and wait for further input from the user.</dd>
+    </dl>
+    <h3>Details</h3>
+    <p>Returns a response to an action request received from a Google Action Start node.</p>
+
+    <p>The response can be in plain text or marked up using
+    <a href="https://developers.google.com/actions/reference/ssml">SSML</a> for additional control of speech
+    output.  An array of up to four messages can be provided if you are asking the user for input.  The
+    first message is used as the prompt to the user for input.  The second and third messages are used as
+    follow up prompts if no input is received.  The fourth message is used to terminate the conversation.
+    If less than four messages are provided, default messages will be used.</p>
+
+</script>
+
+
+
+<script type="text/javascript">
+(function() {
+
+    RED.nodes.registerType('action tell',{
+        category: 'google',
+        color:"rgb(131, 231, 174)",
+        defaults: {
+            name: {value:""},
+            tell: {value: "payload", required: true},
+            tellType: {value:"msg"}
+
+        },
+        inputs:1,
+        outputs:0,
+        align: "right",
+        icon: "comment.png",
+        label: function() {
+            if (this.name) {
+                return this.name;
+            } else {
+                return "Tell";
+            }
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        },
+        oneditprepare:  function() {
+            if (!this.tellType) {
+                this.tellType = 'msg';
+            }
+            $("#node-input-tell").typedInput({
+                default: 'msg',
+                types: ['msg','flow','global','str', 'jsonata'],
+                typeField: $("#node-input-tellType")
+            });
+        }
+    });
+
 })();
 </script>

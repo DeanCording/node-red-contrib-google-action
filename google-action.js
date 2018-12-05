@@ -29,14 +29,20 @@ module.exports = function(RED) {
 
     const express = require('express');
     const https = require("https");
+    const http = require('http');
     const fs = require('fs');
 
     const bodyParser = require('body-parser');
 
-    // Map of response handlers
+    const util = require('util');
+    
+    // Map of conversations
     // Express response objects can't be cloned so we need to keep a central copy.
-
+    // Also keeps track of which node to resume to for a continuing conversation  
+    
+    // convMap = conversationId -> {responseHandler | node}
     var convMap = new Map();
+    
     
     function GoogleActionIn(n) {
         RED.nodes.createNode(this,n);
@@ -67,39 +73,95 @@ module.exports = function(RED) {
 
         // Handler for requests
         expressApp.all(node.url, (request, responseHandler) => {
-
-            convMap.set(request.body.conversation.conversationId, responseHandler);
-
+            
             var msg = {topic: request.body.inputs[0].intent,
                        conversationId: request.body.conversation.conversationId,
                        dialogState: request.body.conversation.conversationToken ?       JSON.parse(request.body.conversation.conversationToken) : {},
-                       expectUserResponse: false,
                        userId: request.body.user.idToken || request.body.user.userId  || undefined,
                        locale: request.body.user.locale,
                        request: request.body
             };
                 
-            if (request.body.inputs[0].arguments == undefined) {
-                
-                msg.payload = request.body.inputs[0].rawInputs[0].query;
-                
-            } else {
+            switch (request.body.inputs[0].intent) {
+                case 'actions.intent.CANCEL':
+                case 'actions.intent.NO_INPUT':
+                    msg.payload = '';
+                    break;
                     
-                msg.payload = request.body.inputs[0].arguments[0].intValue ||
-                            request.body.inputs[0].arguments[0].floatValue ||
-                            request.body.inputs[0].arguments[0].boolValue ||
-                            request.body.inputs[0].arguments[0].datetimeValue ||
-                            request.body.inputs[0].arguments[0].placeValue ||
-                            request.body.inputs[0].arguments[0].extension ||
-                            request.body.inputs[0].arguments[0].structuredValue ||
-                            request.body.inputs[0].arguments[0].textValue ||
-                            "";
+                case 'actions.intent.MAIN':
+                    if (request.body.inputs[0].arguments != undefined) {
+                        msg.payload = request.body.inputs[0].arguments[0].textValue;
+                    } else {
+                        msg.payload = '';
+                    }
+                    break;
+                
+                case 'actions.intent.DATETIME':
+                    msg.payload = request.body.inputs[0].arguments[0].datetimeValue;
+                    break;
+                    
+                case 'actions.intent.TEXT':
+                    if (request.body.inputs[0].arguments != undefined) {
+                        msg.payload = request.body.inputs[0].arguments[0].textValue;
+                    } else {
+                        msg.payload = request.body.inputs[0].rawInputs[0].query;
+                    }
+                    break;
+                    
+                case 'actions.intent.CONFIRMATION':
+                    msg.payload = request.body.inputs[0].arguments[0].boolValue;
+                    break;
+                    
+                case 'actions.intent.OPTION':
+                    msg.payload = request.body.inputs[0].arguments[0].textValue;
+                    break;
+                    
+                case 'actions.intent.PERMISSION':
+                    msg.payload = request.body.device.location;
+                    msg.payload.profile = request.body.user.profile;
+                    break;
+                    
+                case 'actions.intent.PLACE':
+                    msg.payload = request.body.inputs[0].arguments[0].placeValue;
+                    break;
+                    
+                default:
+                   if (request.body.inputs[0].arguments != undefined) {
+                        msg.payload = request.body.inputs[0].arguments[0].textValue;
+                    } else {
+                        msg.payload = request.body.inputs[0].rawInputs[0].query;
+                    }                       
             }
+                
+            node.trace("request: " + msg.topic + ": " + msg.payload);
 
-            node.send(msg);
+            responseHandler.on('close', () => {node.warn("Converstation closed prematurely");               
+                                convMap.delete(request.body.conversation.conversationId);});
 
-            node.trace("request: " + msg.payload);
+            if (request.body.conversation.type == "NEW") {
+                //  New conversation
+                convMap.set(request.body.conversation.conversationId, responseHandler);
+                node.send(msg);
+            } else {
+                // Continuing conversation
+                var continueNode = convMap.get(request.body.conversation.conversationId);
+                
+                if (continueNode != undefined) {
 
+                    convMap.set(request.body.conversation.conversationId, responseHandler);
+                    
+                    if (request.body.inputs[0].intent == 'actions.intent.CANCEL') {
+                        continueNode.send([null, msg]);
+                    } else if (request.body.inputs[0].intent == 'actions.intent.NO_INPUT') {
+                        continueNode.receive(msg);
+                    } else {
+                        continueNode.send([msg, null]);
+                    }
+                } else {
+                    responseHandler.status(404).end();
+                    node.warn("Unknown conversation id");
+                }
+            }
         });
 
         // Start listening
@@ -109,18 +171,259 @@ module.exports = function(RED) {
 
         // Stop listening
         node.on('close', function(done) {
+            convMap.clear();
             node.httpServer.close(function(){
                 done();
             });
         });
 
     }
-    RED.nodes.registerType("google-action in",GoogleActionIn);
+    RED.nodes.registerType("action start",GoogleActionIn);
 
+    function formatPrompt(prompt) {
+        
+        if (prompt.startsWith("<speak>")) {
 
-    function GoogleActionOut(n) {
+            return {richInitialPrompt: {
+                            items: [
+                                {simpleResponse: {
+                                    ssml: prompt
+                                    }
+                                }
+                            ]
+                        }
+                    };
+        } else {
+        
+            return {richInitialPrompt: {
+                            items: [
+                                {simpleResponse: {
+                                    textToSpeech: prompt
+                                    }
+                                }
+                            ]
+                        }
+                    };
+        }
+    }
+    
+
+    function GoogleActionAsk(n) {
         RED.nodes.createNode(this,n);
         var node = this;
+        
+        node.answerType = n.answerType || "simple";
+        
+        node.prompt1 = n.prompt1 || 'payload';
+        node.prompt1Type = n.prompt1Type || 'msg';
+        
+        node.prompt2 = n.prompt2 || '';
+        node.prompt2Type = n.prompt2Type || 'str';
+
+        node.prompt3 = n.prompt3 || '';
+        node.prompt3Type = n.prompt3Type || 'str';
+        
+        node.suggestions =  n.suggestions || "";
+        node.suggestionsType = "str";
+        
+        node.noInputPrompts = n.noInputPrompts || [];
+        
+        node.property = n.property || 'payload';
+        node.propertyType = n.propertyType || 'msg';
+        
+        node.optionsSource = n.optionsSource || 'static';
+        node.options = n.options || [];
+        
+        node.optionsProperty = n.optionsProperty || 'options';
+        node.options.PropertyType = n.optionsPropertyType || 'msg';
+        
+
+
+        this.on("input",function(msg) {
+
+            var responseHandler = convMap.get(msg.conversationId);
+
+            if (responseHandler instanceof http.ServerResponse) {
+                
+                var response;
+                
+                if ((msg.topic == "actions.intent.NO_INPUT") && (
+                    (node.answerType != 'simple') || (msg.request.inputs[0].arguments[1].boolValue))) {
+                    node.send([null, msg]);
+                    return;
+                }
+                
+                if (node.answerType == 'property') {
+                    
+                    response = RED.util.evaluateNodeProperty(node.property,node.propertyType,node,msg);
+                    
+                } else {
+                
+                
+                    response = {expectUserResponse: true};
+                    response.isInSandbox = msg.request.isInSandbox || true;
+                
+                    if (msg.dialogState) {
+                        response.conversationToken = JSON.stringify(msg.dialogState);
+                    }
+                    
+                    var expectedInput = {inputPrompt: {}, possibleIntents: []};
+                    
+                    
+                    switch (node.answerType) {
+                            
+                        case 'simple':
+  
+                            var prompt;
+                            
+                            if (msg.topic == "actions.intent.NO_INPUT") {
+                                prompt = node.noInputPrompts[msg.request.inputs[0].arguments[0].intValue] ||
+                                    node.noInputPrompts[0] ||RED.util.evaluateNodeProperty(node.prompt1,node.prompt1Type,node,msg).toString(); 
+                                
+                            } else {
+                                prompt = RED.util.evaluateNodeProperty(node.prompt1,node.prompt1Type,node,msg).toString();
+                            }
+
+                            expectedInput.possibleIntents.push({intent: "actions.intent.TEXT"});
+    
+                            expectedInput.inputPrompt = formatPrompt(prompt);
+                            
+                            if (node.suggestions.length >0) {
+                                if (Array.isArray(node.suggestions)) {
+                                    expectedInput.inputPrompt.richInitialPrompt.suggestions = [];
+                                    node.suggestions.forEach(suggestion => {
+                                        expectedInput.inputPrompt.richInitialPrompt.suggestions.push({title: suggestion});
+                                    });
+                                } else {
+                                    expectedInput.inputPrompt.richInitialPrompt.suggestions = [];
+                                    node.suggestions.split(/,\n?|\n/).forEach(suggestion => {
+                                        expectedInput.inputPrompt.richInitialPrompt.suggestions.push({title: suggestion});
+                                    });
+                                }
+                            }
+                                
+                            break;
+                            
+                        case 'simple-select':
+                            var prompt;
+                            prompt = RED.util.evaluateNodeProperty(node.prompt1,node.prompt1Type,node,msg).toString();
+                            expectedInput.inputPrompt = formatPrompt(prompt);
+                            
+                            /* {
+                            "items": [
+                                {
+                                    "optionInfo": {
+                                        "key": string,
+                                        "synonyms": [
+                                            string
+                                        ]
+                                    },
+                                    "title": string (optional)
+                                }
+                            ]
+                            } */                          
+                            
+                            
+                            
+                            expectedInput.possibleIntents.push({intent: "actions.intent.OPTION",
+                                inputValueData: { 
+                                "@type": "type.googleapis.com/google.actions.v2.OptionValueSpec", 
+                                listSelect: {
+                                    title: "Test List",
+                                    items: [
+                                    {optionInfo: {key: "Option 1b", synonyms: ['Option 1', '1']}, title: "Option 1c", description: "This is the first option"},
+                                    {optionInfo: {key: "Option 2b", synonyms: ['Option 2', '2']}, title: "Option 2c", description: "This is the second option"},
+                                    {optionInfo: {key: "Option 3b", synonyms: ['Option 3', '3']}, title: "Option 3c", description: "This is the third option"}] }}});
+                            
+                            break;
+                        case 'list-select':
+                        case 'carousel-select':                           
+                                            
+                        case 'datetime':
+                            
+                            expectedInput.possibleIntents[0] =  {intent: "actions.intent.DATETIME",
+                                inputValueData: {
+                                    "@type": "type.googleapis.com/google.actions.v2.DateTimeValueSpec",
+                                    dialogSpec: {
+                                        requestDatetimeText: RED.util.evaluateNodeProperty(node.prompt1,node.prompt1Type,node,msg).toString().replace(/<[^>]*>/g, ""),
+                                        requestDateText: RED.util.evaluateNodeProperty(node.prompt2,node.prompt2Type,node,msg).toString().replace(/<[^>]*>/g, ""),
+                                        requestTimeText: RED.util.evaluateNodeProperty(node.prompt3,node.prompt3Type,node,msg).toString().replace(/<[^>]*>/g, "")
+                                    }
+                                }
+                            };
+                            
+                            break;
+                            
+                        case 'boolean':
+                            
+                            expectedInput.possibleIntents[0] = {intent: "actions.intent.CONFIRMATION",
+                                inputValueData: {
+                                    "@type": "type.googleapis.com/google.actions.v2.ConfirmationValueSpec",
+                                    dialogSpec: {
+                                        requestConfirmationText: RED.util.evaluateNodeProperty(node.prompt1,node.prompt1Type,node,msg).toString().replace(/<[^>]*>/g, "")
+                                    }
+                                }
+                            };
+                            
+                            break;
+                            
+                        case 'place':
+                            expectedInput.possibleIntents[0] = {intent: "actions.intent.PLACE",
+                                inputValueData: {
+                                    "@type": "type.googleapis.com/google.actions.v2.PlaceValueSpec",
+                                    dialog_spec: {
+                                        extension: {
+                                            "@type": "type.googleapis.com/google.actions.v2.PlaceValueSpec.PlaceDialogSpec",
+                                            requestPrompt: RED.util.evaluateNodeProperty(node.prompt1,node.prompt1Type,node,msg).toString().replace(/<[^>]*>/g, ""),
+                                            permissionContext: RED.util.evaluateNodeProperty(node.prompt2,node.prompt2Type,node,msg).toString()
+                                        }
+                                    }
+                                }
+                            };
+                            
+                            break;
+                            
+                        case 'nameLocation':
+                            
+                            expectedInput.possibleIntents[0] = {intent: "actions.intent.PERMISSION",
+                                inputValueData: {
+                                    "@type": "type.googleapis.com/google.actions.v2.PermissionValueSpec",
+                                    optContext: RED.util.evaluateNodeProperty(node.prompt1,node.prompt1Type,node,msg).toString().replace(/<[^>]*>/g, ""),
+                                    permissions: [
+                                        "NAME",
+                                        "DEVICE_PRECISE_LOCATION"
+                                    ]
+                                }
+                            };
+                            
+                            break;
+                    }
+
+                
+                    response.expectedInputs = [expectedInput];
+                }
+                
+                try {
+                    responseHandler.json(response);
+                    convMap.set(msg.conversationId, node);
+                } catch (e) {
+                    node.warn("Invalid conversation id");
+                }
+                
+            } else {
+                node.warn("Invalid conversation id");
+            }
+        });
+    }
+    RED.nodes.registerType("action ask",GoogleActionAsk);
+    
+    
+    function GoogleActionTell(n) {
+        RED.nodes.createNode(this,n);
+        var node = this;
+        
+        node.tell = n.tell || 'payload';
+        node.tellType = n.tellType || 'msg';
 
         this.on("input",function(msg) {
 
@@ -128,37 +431,44 @@ module.exports = function(RED) {
 
             if (responseHandler) {
                 
-                
-                var response = msg.response || {isInSandbox: msg.request.isInSandbox || {isInSandbox: true}};
-                
-                response.expectUserResponse = response.expectUserResponse || msg.expectUserResponse || false;
-                response.conversationToken = JSON.stringify(msg.dialogState);
-                                              
-                if (msg.expectUserResponse) {
-                    if (Array.isArray(msg.payload)) {
-//                        app.ask(app.buildInputPrompt(msg.payload[0].startsWith("<speak>"), msg.payload[0],
-//                                             msg.payload.slice(1,4)), msg.dialogState);
-                    } else {
-                        response.expectedInputs = [{inputPrompt: {richInitialPrompt: {items: [{simpleResponse: {textToSpeech: msg.payload}}],
-                          suggestions: [{ title: "Option 1a"}, {title: "Option 2a"} , {title: "Option 3a"}]
-                        }},
-                           possibleIntents: [{intent: "actions.intent.OPTION",
-                               inputValueData: { "@type": "type.googleapis.com/google.actions.v2.OptionValueSpec", simpleSelect: {items: [
-                                    {optionInfo: {key: "Option 1"}, title: "Option 1"},
-                                    {optionInfo: {key: "Option 2"}, title: "Option 2"},
-                                    {optionInfo: {key: "Option 3"}, title: "Option 3"}] }}}]
-                          
-                        }];
-                    }
-                } else {
-                    response.finalResponse = {richResponse: {items: [{simpleResponse: {textToSpeech: msg.payload}}]}};
+                var response = {expectUserResponse: false};
+                response.isInSandbox = msg.request.isInSandbox || true;
+               
+                if (msg.dialogState) {
+                    response.conversationToken = JSON.stringify(msg.dialogState);
                 }
-                responseHandler.json(response);
-                convMap.delete(msg.conversationId);
+ 
+                var prompt = RED.util.evaluateNodeProperty(node.tell,node.tellType,node,msg).toString();
+ 
+                if (prompt.startsWith("<speak>")) {
+
+                    response.finalResponse = {richResponse: {
+                                                items: [
+                                                    {simpleResponse: {
+                                                        ssml: prompt
+                                                        }
+                                                    }]
+                                            }};
+                } else {
+                    response.finalResponse = {richResponse: {
+                        items: [
+                            {simpleResponse: {
+                                textToSpeech:prompt
+                                }
+                            }]
+                    }};
+                }
+
+                try {
+                    responseHandler.json(response);
+                    convMap.delete(msg.conversationId);
+                } catch (e) {
+                    node.warn("Invalid conversation id");
+                }
             } else {
                 node.warn("Invalid conversation id");
             }
         });
     }
-    RED.nodes.registerType("google-action response",GoogleActionOut);
+    RED.nodes.registerType("action tell",GoogleActionTell);
 };
