@@ -126,7 +126,12 @@ module.exports = function(RED) {
 							if (msg.payload.basicCard.title) basicCard.setTitle(msg.payload.basicCard.title);
 							if (msg.payload.basicCard.bodyText) basicCard.setBodyText(msg.payload.basicCard.bodyText);
 							if (msg.payload.basicCard.image) basicCard.setImage(msg.payload.basicCard.image.url,msg.payload.basicCard.image.title);
-							if (msg.payload.basicCard.button)basicCard.addButton(msg.payload.basicCard.button.title, msg.payload.basicCard.button.url);
+							if (msg.payload.basicCard.button){
+								var i;
+								for (i=0;i<msg.payload.basicCard.button.length;i++){								
+									basicCard.addButton(msg.payload.basicCard.button[i].title, msg.payload.basicCard.button[i].url);
+								}
+							}
 							if (msg.payload.basicCard.imageDisplay=='white')
 								basicCard.setImageDisplay(app.ImageDisplays.WHITE)
 							else if (msg.payload.basicCard.imageDisplay=='default')
