@@ -132,7 +132,9 @@ module.exports = function(RED) {
 								node.trace("Prepare basicCard");							
 								var basicCard={};						
 								if (msg.payload.basicCard.title) basicCard.title=msg.payload.basicCard.title;
+								if (msg.payload.basicCard.subtitle) basicCard.title=msg.payload.basicCard.subtitle;
 								if (msg.payload.basicCard.formattedText) basicCard.text=msg.payload.basicCard.formattedText;
+								if (msg.payload.basicCard.footer) basicCard.text=msg.payload.basicCard.footer;
 								if (msg.payload.basicCard.image) basicCard.image=new Image({url: msg.payload.basicCard.image.url,alt:msg.payload.basicCard.image.alt});
 								if (msg.payload.basicCard.button){
 									if (Array.isArray(msg.payload.basicCard.button)){
@@ -192,7 +194,7 @@ module.exports = function(RED) {
 									else
 										carousel.items['item_'+i]=item;		
 								}
-								if (msg.payload.carousel.display)basicCard.display=msg.payload.carousel.display;									
+								if (msg.payload.carousel.display)carousel.display=msg.payload.carousel.display;									
 								node.trace("Add Carousel" + JSON.stringify (new Carousel(carousel)));	
 								if (msg.closeConversation){
 									conv.close (new Carousel(carousel));
@@ -201,8 +203,8 @@ module.exports = function(RED) {
 								}
 							}
 							// suggestions are not allowed if collection will be closed
-							if (msg.closeConversation && msg.payload.suggestion)	{						
-								conv.ask (new Suggestions(msg.payload.suggestion));
+							if (msg.closeConversation && msg.payload.suggestions)	{						
+								conv.ask (new Suggestions(msg.payload.suggestions));
 							}
 						} else {
 							if (msg.closeConversation) {
@@ -214,7 +216,8 @@ module.exports = function(RED) {
 						}
 
 					} catch (err) {
-						node.warn("exception occured: " + JSON.stringify(err) + " Msg: " + JSON.stringify(msg));
+						node.error("exception occured: " + JSON.stringify(err) + " Msg: " + JSON.stringify(msg));
+						conv.ask(node.exceptionMsg);
 					}
 													
 			}).catch((err) => {
