@@ -46,6 +46,19 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         <label for="node-input-cert"><i class="fa fa-tag"></i> SSL Certificate File</span></label>
         <input id="node-input-cert" type="text" placeholder="/path/on/server/to/certificate.crt">
     </div>
+   <div class="form-row">
+        <label for="node-input-defaultSimpleResponse"><i class="fa fa-tag"></i> Default Response</span></label>
+        <input id="node-input-defaultSimpleResponse" type="text" placeholder="I send you the following information">
+    </div>
+   <div class="form-row">
+        <label for="node-input-noAnswerReceived"><i class="fa fa-tag"></i> Response on missing Response from flow</span></label>
+        <input id="node-input-noAnswerReceived" type="text" placeholder="I have no valid Response for you. Sorry!">
+    </div>
+   <div class="form-row">
+        <label for="node-input-exceptionMsg"><i class="fa fa-tag"></i> Response if exception occurs</span></label>
+        <input id="node-input-exceptionMsg" type="text" placeholder="I encountered a glitch. Can you say that again?">
+    </div>
+    
 </script>
 
 <script type="text/x-red" data-help-name="google-action in">
@@ -64,6 +77,12 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         <dd>full path to SSL private key file on Node Red server</dd>
         <dt>SSl certificate file <span class="property-type">filename </span><dt>
         <dd>full pathname to SSL certificate file on Node Red server</dd>
+        <dt>Default Response<dt>
+        <dd>The default Response will be sent to the client if ohne a complex object is specified by the flow.</dd>
+        <dt>Response on missing Response from flow<dt>
+        <dd>This message will be sent to the client if no msg object was received from the Output node.</dd>
+        <dt>Response if exception occurs<dt>
+        <dd>This message will be sent to the client if an exception is thrown by the Actions SDK or the node.</dd>          
     </dl>
     <h3>Outputs</h3>
     <dl class="message-properties">
@@ -75,12 +94,14 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         <dt>userId<span class="property-type">string</span></dt>
         <dd>A unique identifier for the user. If the user is registered and recognised then the user id
         is consistent across conversations.</dd>
-        <dt>locale<span class="property-type">string</span></dt>
-        <dd>country and language code for the request</dd>
+        <dt>surface<span class="property-type">string</span></dt>
+        <dd>contains information about the device. See <a href="https://developers.google.com/actions/assistant/surface-capabilities">https://developers.google.com/actions/assistant/surface-capabilities</a> for more details.</dd>
         <dt>dialogState<span class="property-type">object</span></dt>
-        <dd>An object that can be used to store state information between turns of the conversation.</dd>
+        <dd>An object that can be used to store state information between turns of the conversation (data-Object of conversation).</dd>
         <dt>payload<span class="property-type">string</span></dt>
         <dd>The raw text of the user's spoken or typed input.</dd>
+        <dt>option<span class="property-type">string</span></dt>
+        <dd>contains the selected option if intent is actions.intent.OPTION.</dd>
     </dl>
     <h3>Details</h3>
     <p>The node will listen for incoming action requests from Google Actions.</p>
@@ -89,6 +110,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         <li>actions.intent.MAIN - Default entry point at start of conversation</li>
         <li>actions.intent.TEXT - A turn of the conversation</li>
         <li>actions.intent.CANCEL - The user has terminated the conversation</li>
+        <li>actions.intent.OPTION - The user has selected an option from a list, carousel or browseCarusel</li>
         </ul>
         See <a href="https://developers.google.com/actions/reference/rest/intents">Google Actions Reference</a> for more information.</p>
     <p><b>Note:</b> this node does not send any response to the request. The flow
@@ -112,23 +134,131 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         <dd>A identifier for the conversation that this is a response for.  If the flow asks the user a question, the response will have the same identifier.<dd>
         <dt>dialogState<span class="property-type">object</span></dt>
         <dd>An object that can be used to store state information between turns of the conversation.</dd>
-        <dt>payload <span class="property-type">string|array</span></dt>
-        <dd>The text of the response to be returned.</dd>
+        <dt>payload <span class="property-type">string|object</span></dt>
+        <dd>The text and/or object definition of the response to be returned.</dd>
         <dt>closeConversation<span class="property-type">boolean</span></dt>
         <dd>If true, the converation will be terminated after this response. Otherwise the conversation will remain active and wait for further input from the user.</dd>
     </dl>
     <h3>Details</h3>
     <p>Returns a response to an action request received from a Google Action Input node.</p>
 
-    <p>The response can be in plain text or marked up using
+    <p>If msg.payload is a string, the response could be plain text or 
     <a href="https://developers.google.com/actions/reference/ssml">SSML</a> for additional control of speech
-    output.  An array of up to four messages can be provided if you are asking the user for input.  The
-    first message is used as the prompt to the user for input.  The second and third messages are used as
-    follow up prompts if no input is received.  The fourth message is used to terminate the conversation.
-    If less than four messages are provided, default messages will be used.</p>
+    output.</p>
+    <p>If msg.payload contains an object, the following sub objects are allowed inside this object:
+    <h4><b>One simpleResponse object (mandatory)</b></h4>
+    <p>The simpleResponse could contain either a string or an object. If the simpleResponse contains a string. The content could be a plain text or ssml. 
+    <pre>{
+  "simpleResponse": "<speak><p>This is the response to the device</p></speak>"
+}</pre>
+    </p>
+    <p>If the simpleResponse contains an object, there are to attributes supported: 
+    <pre>{
+  "simpleResponse": {
+      "speech": "<speak><p>This is the voice response for the device</p></speak>",
+      "text": "This is the display response for the device"
+  }
+}</pre>
+    The attribute speech is mandatory and can contain either plain text oder ssml. The attibute text is optional an can contain a different message for the display of the device.
+    </p>
+    <h4><b>Only one object of the types basicCard, browseCarousel, carousel or image (optional)</b></h4>
+    <p>These objects have a a little different syntax than the official objects of the google action SDK to avoid the use of action SDK contructors outside the nodes.</p>
+    <p><b>basicCard</b>
+   <pre>{
+  "basicCard": {
+      "title": " This is the title of the card",  // optional
+      "subtitle": " This is the subtitle of the card",  // optional
+      "footer": " This is the footer text of the card",  // optional
+      "formattedText": "This is a text on the card response", // either formattedText or an image must be included
+      "buttons" : [     //optional, buttons could contain directly one button object or an array of buttons
+           {
+              "title": "Text on button",    //mandatory
+               "url": "https://target.url"  //mandatory
+           }
+      ]
+      "image": {
+          "url": "https://www.image.com/demo.png", //mandatory
+          "alt": "Demo image" //mandatory, alternate text
+      }
+      "display: "WHITE" // optional
+  }
+}</pre>
+    <p><b>browseCarousel</b>
+   <pre>{
+  "browseCarousel": {
+      "items": [
+	        {
+			"title": " This is the title of the item",  // mandatory
+	        "description": "This is a description on the card response", // optional
+            "footer": " This is the footer text of the card",  // optional			
+            "image": {
+		       "url": "https://www.image.com/demo.png", //mandatory
+		       "alt": "Demo image" //mandatory, alternate text
+	        },
+			"openUrlAction": { // mandatory
+		       "url": "https://www.action.com/", //optional
+		       "urlTypeHint": "Indicates a hint for the url type." //optional
+			}
+	  ]
+      "display: "WHITE" // optional
+  }
+}</pre>
+    <p><b>browseCarousel</b>
+   <pre>{
+  "carousel": {
+      "items": [
+	        {
+			"key": "Keyword_1", // unique key word. Will be sent in attribute option if selected.
+			"title": " This is the title of the item",  // mandatory
+	        "description": "This is a description on the card response", // optional
+            "image": {
+		       "url": "https://www.image.com/demo.png", //mandatory
+		       "alt": "Demo image" //mandatory, alternate text
+	        },
+			"synonyms": [ // optional, list of synonyms
+		       "synonym 1",
+		       "synonym 2"
+			]
+	  ]
+      "display: "WHITE" // optional
+  }
+}</pre>    
+<h4><b>List of suggestions</b></h4>
+    <pre>{
+  "suggestions": [
+      "Option 1",
+      "Option 2",
+	  "Option 3"
+  ]
+}</pre>
+<h4><b>Example for a complex response</b></h4>
+    <pre>"payload": {
+  "simpleResponse": {
+      speech: 'Howdy, this is GeekNum. I can tell you fun facts about almost any number, my favorite is 42. What number do you have in mind?',
+      text: 'Howdy! I can tell you fun facts about almost any number. What do you have in mind?'
+  }
+	
+  "basicCard": {
+      "formattedText": 'This is a basic card.  Text in a basic card can include "quotes" and
+                        most other unicode characters including emoji 📱.  Basic cards also support
+                        some markdown formatting like *emphasis* or _italics_, **strong** or
+                        __bold__, and ***bold itallic*** or ___strong emphasis___ as well as other
+                        things like line  \nbreaks', 
+      "subtitle": "This is a subtitle",
+      "title": "Title: this is a title",
+      "buttons": {
+          "title": "This is a button",
+          "url": "https://assistant.google.com/",
+      },
+      "image": {
+          "url": "https://example.com/image.png",
+          "alt": "Image alternate text"
+      },
+      "display": "CROPPED"
+  }
+}</pre>
 
 </script>
-
 <script type="text/javascript">
 (function() {
     RED.nodes.registerType('google-action in',{
@@ -140,7 +270,10 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             port: {value:"8081",required:true, validate: RED.validators.number()},
             url: {value:"/", required:true},
             key: {value:"", requred:true},
-            cert: {value: "", required:true}
+            cert: {value: "", required:true},
+            defaultSimpleResponse: {value:"I send you the following information", required:true},
+            noAnswerReceivedMsg: {value:"I have no valid Response for you. Sorry!", required:true},
+            exceptionMsg: {value:"I encountered a glitch. Can you say that again?", required:true}          
         },
         inputs:0,
         outputs:1,
